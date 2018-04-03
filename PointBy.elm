@@ -27,3 +27,15 @@ unSpendPoint pointClass points =
             Result.Ok <| Point numRemaining Nothing remainingPoints
         Point _ _ remainingPoints ->
             unSpendPoint pointClass remainingPoints
+
+countPoints : attributearraytype -> PointBy attributearraytype -> Int
+countPoints pointClass points =
+    case points of
+        ZeroPoints ->
+            0
+        Point _ (Just pointClass) remainingPoints ->
+            (+) 1 <| countPoints pointClass remainingPoints
+        Point _ _ remainingPoints ->
+            countPoints pointClass remainingPoints
+
+
