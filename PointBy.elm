@@ -19,8 +19,8 @@ spendPoint pointClass points =
             Result.Err "No points left to spend!"
         Point numRemaining Nothing remainingPoints ->
             Result.Ok <| Point numRemaining (Just pointClass) remainingPoints
-        Point _ (Just _) remainingPoints ->
-            spendPoint pointClass remainingPoints
+        Point num (Just v) remainingPoints ->
+            Result.map (Point num (Just v)) (spendPoint pointClass remainingPoints)
 
 
 unspendPoint : attributearraytype -> PointBy attributearraytype -> Result String (PointBy attributearraytype)
@@ -30,8 +30,8 @@ unspendPoint pointClass points =
             Result.Err "Yeah, you don't have any to un-spend."
         Point numRemaining (Just pointClass) remainingPoints ->
             Result.Ok <| Point numRemaining Nothing remainingPoints
-        Point _ _ remainingPoints ->
-            unspendPoint pointClass remainingPoints
+        Point num (v) remainingPoints ->
+            Result.map (Point num (v)) (unspendPoint pointClass remainingPoints)
 
 
 foldr : (attributearraytype -> acc -> acc) -> acc -> PointBy attributearraytype -> acc

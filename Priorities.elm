@@ -64,14 +64,9 @@ getList (Priorities arr) =
 
 priorityCharToString : PriorityChar -> String
 priorityCharToString chr =
-    (case chr of
-        APriority -> 'A'
-        BPriority -> 'B'
-        CPriority -> 'C'
-        DPriority -> 'D'
-        EPriority -> 'E'
-    ) |> toString
-
-priorityToString : Priority -> String
-priorityToString p =
-    Basics.toString p
+    case chr of
+        APriority -> "A"
+        BPriority -> "B"
+        CPriority -> "C"
+        DPriority -> "D"
+        EPriority -> "E"
