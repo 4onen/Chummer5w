@@ -6,7 +6,10 @@ type PointBy attributearraytype
 
 pointBy : Int -> PointBy attributearraytype
 pointBy numPoints =
-    Point numPoints Nothing (pointBy <| numPoints-1)
+    if numPoints > 0 then
+        Point numPoints Nothing (pointBy (numPoints-1))
+    else
+        ZeroPoints
 
 
 spendPoint : attributearraytype -> PointBy attributearraytype -> Result String (PointBy attributearraytype)

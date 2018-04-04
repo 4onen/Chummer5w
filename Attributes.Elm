@@ -16,8 +16,7 @@ type BaseLabel
 
 type SpecialLabel 
     = EDGE
-    | MAGIC
-    | RESONANCE
+    | MAGRES
 
 baseLabelList : List BaseLabel
 baseLabelList =
@@ -29,7 +28,7 @@ baseLabelList =
 
 specialLabelList : List SpecialLabel
 specialLabelList =
-    [ EDGE, MAGIC, RESONANCE ]
+    [ EDGE, MAGRES ]
 
 labelList : List Label
 labelList = 
@@ -51,8 +50,7 @@ toString lbl =
         Base LOGIC -> "LOG"
         Base WILLPOWER -> "WIL"
         Special EDGE -> "EDGE"
-        Special MAGIC -> "MAG"
-        Special RESONANCE -> "RES"
+        Special MAGRES -> "MAG/RES"
 
 type alias AttributeObject =
     { body : Int
@@ -64,8 +62,7 @@ type alias AttributeObject =
     , logic : Int
     , willpower : Int
     , edge : Int
-    , magic : Int
-    , resonance : Int
+    , magres : Int
     }
 
 getAttribute : Label -> AttributeObject -> Int
@@ -81,5 +78,4 @@ getAttribute class attobj =
             Base LOGIC -> .logic
             Base WILLPOWER -> .willpower
             Special EDGE -> .edge
-            Special MAGIC -> .magic
-            Special RESONANCE -> .resonance
+            Special MAGRES -> .magres

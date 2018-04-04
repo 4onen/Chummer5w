@@ -1,9 +1,9 @@
 module Character exposing (..)
 
-import PointBy exposing (PointBy)
+import PointBy exposing (PointBy, pointBy)
 import Metatype exposing (Metatype)
-import Attributes
-import Priorities exposing (Priorities)
+import Attributes exposing (AttributeObject)
+import Priorities exposing (Priorities, PriorityChar(..))
 
 type alias Character =
     { priorities : Priorities
@@ -12,13 +12,28 @@ type alias Character =
     , specialAttributePointBy : PointBy Attributes.SpecialLabel
     }
 
-makeCharacter : Int -> Int -> Metatype -> Character
-makeCharacter attributeCount specialAttributeCount race =
-    Character
-        ( Priorities.default )
-        ( race )
-        ( PointBy.pointBy attributeCount )
-        ( PointBy.pointBy specialAttributeCount )
-
 default : Character
-default = makeCharacter 20 3 (Metatype.Human Nothing)
+default = 
+    Character
+        Priorities.default
+        (Metatype.Human Nothing)
+        (pointBy (priorityToAttributeCount Priorities.default))
+        (pointBy 3)
+
+
+getAttributeObject : Character -> AttributeObject
+getAttributeObject character =
+    let
+        magresPriority = Priorities.getChar Priorities.Talent character.priorities
+        base = Metatype.getBaseStats character.race magresPriority
+    in
+        base
+
+priorityToAttributeCount : Priorities -> Int
+priorityToAttributeCount ps = 
+    case Priorities.getChar Priorities.Attributes ps of
+        APriority -> 24
+        BPriority -> 20
+        CPriority -> 16
+        DPriority -> 14
+        EPriority -> 12
