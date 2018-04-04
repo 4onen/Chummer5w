@@ -42,15 +42,36 @@ lower : Int -> Priorities -> Priorities
 lower i ps =
     swap (i) (i+1) ps
 
+indexToPriorityChar : Int -> PriorityChar
+indexToPriorityChar i =
+    case i of 
+        0 -> APriority
+        1 -> BPriority
+        2 -> CPriority
+        3 -> DPriority
+        4 -> EPriority
+        _ -> EPriority
+
 getChar : Priority -> Priorities -> PriorityChar
-getChar p (Priorities ps) =
-    ps  |> Array.indexedMap (,)
+getChar p (Priorities arr) =
+    arr |> Array.indexedMap (,)
         |> Array.foldl (\(i,v) acc -> if v==p then i else acc) -1
-        |> (\i -> case i of 
-            0 -> APriority
-            1 -> BPriority
-            2 -> CPriority
-            3 -> DPriority
-            4 -> EPriority
-            _ -> EPriority
-           )
+        |> indexToPriorityChar
+
+getList : Priorities -> List Priority
+getList (Priorities arr) =
+    Array.toList arr
+
+priorityCharToString : PriorityChar -> String
+priorityCharToString chr =
+    (case chr of
+        APriority -> 'A'
+        BPriority -> 'B'
+        CPriority -> 'C'
+        DPriority -> 'D'
+        EPriority -> 'E'
+    ) |> toString
+
+priorityToString : Priority -> String
+priorityToString p =
+    Basics.toString p

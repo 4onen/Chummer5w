@@ -23,15 +23,15 @@ spendPoint pointClass points =
             spendPoint pointClass remainingPoints
 
 
-unSpendPoint : attributearraytype -> PointBy attributearraytype -> Result String (PointBy attributearraytype)
-unSpendPoint pointClass points =
+unspendPoint : attributearraytype -> PointBy attributearraytype -> Result String (PointBy attributearraytype)
+unspendPoint pointClass points =
     case points of
         ZeroPoints ->
             Result.Err "Yeah, you don't have any to un-spend."
         Point numRemaining (Just pointClass) remainingPoints ->
             Result.Ok <| Point numRemaining Nothing remainingPoints
         Point _ _ remainingPoints ->
-            unSpendPoint pointClass remainingPoints
+            unspendPoint pointClass remainingPoints
 
 
 foldr : (attributearraytype -> acc -> acc) -> acc -> PointBy attributearraytype -> acc

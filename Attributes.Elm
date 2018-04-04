@@ -1,5 +1,7 @@
 module Attributes exposing (..)
 
+import PointBy exposing (PointBy)
+
 type Label 
     = Base BaseLabel
     | Special SpecialLabel
@@ -79,3 +81,47 @@ getAttribute class attobj =
             Base WILLPOWER -> .willpower
             Special EDGE -> .edge
             Special MAGRES -> .magres
+
+baseGetterList : List (AttributeObject -> Int)
+baseGetterList =
+    [ .body,.agility,.reaction,.strength,.charisma
+    , .intuition,.logic,.logic,.willpower ]
+
+specialGetterList : List (AttributeObject -> Int)
+specialGetterList =
+    [ .edge,.magres ]
+
+getterList : List (AttributeObject -> Int)
+getterList = baseGetterList ++ specialGetterList
+
+addBases : AttributeObject -> AttributeObject -> AttributeObject
+addBases a1 {body,agility,reaction,strength,charisma,intuition,logic,willpower} =
+    { a1 | body = a1.body+body, agility = a1.agility+agility
+    , reaction = a1.reaction + reaction, strength = a1.strength + strength
+    , charisma = a1.charisma + charisma, intuition = a1.intuition + intuition
+    , logic = a1.logic + logic, willpower = a1.willpower + willpower
+    }
+
+addSpecials : AttributeObject -> AttributeObject -> AttributeObject
+addSpecials a1 {edge,magres} =
+    { a1 | edge = a1.edge + edge, magres = a1.magres + magres }
+
+add : AttributeObject -> AttributeObject -> AttributeObject
+add a1 a2 =
+    a1
+        |> flip addBases a2
+        |> flip addSpecials a2
+
+pointBysToAttributeObject : PointBy BaseLabel -> PointBy SpecialLabel -> AttributeObject
+pointBysToAttributeObject bases specials =
+    { body = PointBy.countPoints BODY bases
+    , agility = PointBy.countPoints AGILITY bases
+    , reaction = PointBy.countPoints REACTION bases
+    , strength = PointBy.countPoints STRENGTH bases
+    , charisma = PointBy.countPoints CHARISMA bases
+    , intuition = PointBy.countPoints INTUITION bases
+    , logic = PointBy.countPoints LOGIC bases
+    , willpower = PointBy.countPoints WILLPOWER bases
+    , edge = PointBy.countPoints EDGE specials
+    , magres = PointBy.countPoints MAGRES specials
+    }
