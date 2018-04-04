@@ -19,6 +19,26 @@ type SpecialLabel
     | MAGIC
     | RESONANCE
 
+baseLabelList : List BaseLabel
+baseLabelList =
+    [ BODY, AGILITY, REACTION
+    , STRENGTH, CHARISMA
+    , INTUITION, LOGIC
+    , WILLPOWER
+    ]
+
+specialLabelList : List SpecialLabel
+specialLabelList =
+    [ EDGE, MAGIC, RESONANCE ]
+
+labelList : List Label
+labelList = 
+    let
+        taggedBases = List.map Base baseLabelList
+        taggedSpecials = List.map Special specialLabelList
+    in
+        taggedBases ++ taggedSpecials
+
 toString : Label -> String
 toString lbl =
     case lbl of
