@@ -39,7 +39,7 @@ subscriptions model =
 view {rl,reorder} =
     Html.div [] 
         [ Html.button [Html.Events.onClick ToggleReorderEnabled] [Html.text (if reorder then "Disable Drag" else "Drag")]
-        , ReorderableList.viewWithOptions RLMsg (ReorderableList.Options reorder (Just viewListTag) (Just Html.text) (Just viewRaiseLowerButton)) rl
+        , ReorderableList.viewWithOptions RLMsg (ReorderableList.Options reorder (Just viewListTag) (Just (\i v -> Html.text v)) (Just viewRaiseLowerButton)) rl
         ]
 
 viewListTag : Int -> Html Msg

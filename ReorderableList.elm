@@ -141,15 +141,9 @@ itemView msg opts {data,drag} myIdx item =
             case drag of
                 Just d ->
                     if (myIdx<d.idx) && (d.currentY-d.startY)<(myIdx-d.idx)*elementHeight+conservativeHalfHeight then
-                        [ ("transform","translateY(50px)")
-                        , ("transition","translate 200ms ease-in-out")
-                        ]
+                        [ ("transform","translateY(50px)") ]
                     else if (myIdx>d.idx) && (d.currentY-d.startY)>(myIdx-d.idx)*elementHeight-conservativeHalfHeight then
-                        [ ("transform","translateY(-50px)")
-                        , ("transition","translate 200ms ease-in-out")
-                        ]
-                    else if (myIdx /= d.idx) then
-                        [ ("transition","translate 200ms ease-in-out") ]
+                        [ ("transform","translateY(-50px)") ]
                     else
                         []
                 Nothing ->
