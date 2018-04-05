@@ -6,33 +6,34 @@ import Html.Events
 import Json.Decode
 import Mouse
 
-type alias Model a =
-    { data : List a
+type alias Model val =
+    { data : List val
     , drag : Maybe Drag
     }
 
 type alias Drag =
-    { idx : Int
+    { idx : Index
     , startY : Int
     , currentY : Int
     }
 
-type alias Options a =
+type alias Options val msg =
     { enable : Bool
-    , rowTagFunc : Maybe (Int -> String)
-    , labelFunc : Maybe (a -> String)
+    , rowTagFunc : Maybe (Index -> Html msg)
+    , labelFunc : Maybe (val -> Html msg)
+    , updownButtons : Maybe (Index -> val -> Bool -> Html msg)
     }
 
 type alias Index = Int
 
-init : Model a
+init : Model val
 init = fromList []
 
-fromList : List a -> Model a
+fromList : List val -> Model val
 fromList input =
     {data = input, drag = Nothing}
 
-toList : Model a -> List a
+toList : Model val -> List val
 toList model =
     let
         safeModel = 
@@ -48,12 +49,14 @@ type Msg
     = DragStart Index Int
     | DragAt Int
     | DragEnd Int
+    | RaiseItem Int
+    | LowerItem Int
 
-updateList : (List a -> List a) -> Model a -> Model a
+updateList : (List val -> List val) -> Model val -> Model val
 updateList func model =
     {model | drag = Nothing, data = func model.data}
 
-update : Msg -> Model a -> Model a
+update : Msg -> Model val -> Model val
 update msg model =
     case msg of
         DragStart idx y ->
@@ -62,6 +65,10 @@ update msg model =
             {model | drag = Maybe.map (updateDragAt y) model.drag}
         DragEnd y ->
             (updateDragEnd y model)
+        RaiseItem idx ->
+            {model | data = moveItem idx -1 model.data}
+        LowerItem idx ->
+            {model | data = moveItem idx 1 model.data}
 
 
 updateDragAt : Int -> Drag -> Drag
@@ -69,7 +76,7 @@ updateDragAt y drag =
     {drag|currentY = y}
 
 
-updateDragEnd : Int -> Model a -> Model a
+updateDragEnd : Int -> Model val -> Model val
 updateDragEnd y model =
     case model.drag of
         Just d ->
@@ -90,15 +97,15 @@ moveItem from by oldList =
             ++ (List.drop (from + by) listWithoutMoved)
 
 
-subscriptions : Model a -> Sub Msg
+subscriptions : Model val -> Sub Msg
 subscriptions {drag} =
     case drag of
         Just _ -> Sub.batch [Mouse.moves (.y>>DragAt), Mouse.ups (.y>>DragEnd)]
         Nothing -> Sub.none
 
 
-viewWithOptions : Options a -> Model a -> Html Msg
-viewWithOptions opts model =
+viewWithOptions : (Msg -> msg) -> Options val msg -> Model val -> Html msg
+viewWithOptions msg opts model =
     Html.table 
         [ Html.Attributes.style 
             [ ("margin","0")
@@ -107,11 +114,11 @@ viewWithOptions opts model =
             , ("vertical-align","middle")
             ]
         ]
-        (List.indexedMap (itemView opts model) model.data)
+        (List.indexedMap (itemView msg opts model) model.data)
 
 
-itemView : Options a -> Model a -> Index -> a -> Html Msg
-itemView opts {data,drag} myIdx item =
+itemView : (Msg -> msg) -> Options val msg -> Model val -> Index -> val -> Html msg
+itemView msg opts {data,drag} myIdx item =
     let
         buttonStyle = 
             if opts.enable then 
@@ -164,33 +171,52 @@ itemView opts {data,drag} myIdx item =
                 Just f ->
                     f myIdx
                 Nothing ->
-                    ""
+                    Html.text ""
         label =
             case opts.labelFunc of
                 Just f ->
                     f item
                 Nothing ->
-                    toString item
+                    Html.text (toString item)
+        updownButtons = 
+            case opts.updownButtons of
+                Just f ->
+                    [ Html.button 
+                        [ Html.Attributes.style buttonStyle
+                        , Html.Attributes.disabled (myIdx==0)
+                        , Html.Events.onClick <| msg (RaiseItem myIdx)
+                        ] 
+                        [f myIdx item True]
+                    , Html.button 
+                        [ Html.Attributes.style buttonStyle
+                        , Html.Attributes.disabled (myIdx==(List.length data)-1)
+                        , Html.Events.onClick <| msg (LowerItem myIdx)
+                        ] 
+                        [f myIdx item False]
+                    ]
+                Nothing -> 
+                    []
     in
         Html.tr [] 
-            [ Html.td [] [Html.text rowTag]
+            [ Html.td [] [rowTag]
+            , Html.td [] updownButtons
             , Html.td
                 [ Html.Attributes.style <| makingWayStyle ++ moveStyle ++ changingStyle ++ constantStyle]
                 [ Html.button 
                     [ Html.Attributes.style buttonStyle
-                    , onMouseDown <| DragStart myIdx
+                    , onMouseDown <| (\i -> msg (DragStart myIdx i))
                     ]
                     [Html.text ":::"]
                 , Html.div 
                     [Html.Attributes.style [("display","inline-block")]] 
-                    [Html.text label]
+                    [label]
                 ]
             ]
 
 
 
-view : Model a -> Html Msg
-view = viewWithOptions (Options True Nothing Nothing)
+view : Model val -> Html Msg
+view = viewWithOptions identity (Options True Nothing Nothing Nothing)
 
 elementHeight : Int
 elementHeight = 50
