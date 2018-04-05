@@ -39,5 +39,15 @@ subscriptions model =
 view {rl,reorder} =
     Html.div [] 
         [ Html.button [Html.Events.onClick ToggleReorderEnabled] [Html.text (if reorder then "Disable Drag" else "Drag")]
-        , Html.map RLMsg <| ReorderableList.viewWithEnable reorder rl
+        , Html.map RLMsg <| ReorderableList.viewWithOptions (ReorderableList.Options reorder (Just viewListTag) (Just identity)) rl
         ]
+
+viewListTag : Int -> String
+viewListTag idx =
+    case idx of
+        0 -> "A"
+        1 -> "B"
+        2 -> "C"
+        3 -> "D"
+        4 -> "E"
+        _ -> "ERR"

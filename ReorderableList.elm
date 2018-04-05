@@ -1,10 +1,10 @@
 module ReorderableList exposing (..)
 
-import Mouse
 import Html exposing (Html, Attribute)
 import Html.Attributes
 import Html.Events
 import Json.Decode
+import Mouse
 
 type alias Model a =
     { data : List a
@@ -15,6 +15,12 @@ type alias Drag =
     { idx : Int
     , startY : Int
     , currentY : Int
+    }
+
+type alias Options a =
+    { enable : Bool
+    , rowTagFunc : Maybe (Int -> String)
+    , labelFunc : Maybe (a -> String)
     }
 
 type alias Index = Int
@@ -91,8 +97,8 @@ subscriptions {drag} =
         Nothing -> Sub.none
 
 
-viewWithEnable : Bool -> Model a -> Html Msg
-viewWithEnable enable model =
+viewWithOptions : Options a -> Model a -> Html Msg
+viewWithOptions opts model =
     Html.table 
         [ Html.Attributes.style 
             [ ("margin","0")
@@ -101,14 +107,14 @@ viewWithEnable enable model =
             , ("vertical-align","middle")
             ]
         ]
-        (List.indexedMap (itemView enable model) model.data)
+        (List.indexedMap (itemView opts model) model.data)
 
 
-itemView : Bool -> Model a -> Index -> a -> Html Msg
-itemView enable {data,drag} myIdx item =
+itemView : Options a -> Model a -> Index -> a -> Html Msg
+itemView opts {data,drag} myIdx item =
     let
         buttonStyle = 
-            if enable then 
+            if opts.enable then 
                 [("display","inline-block")] 
             else 
                 [("display","none")]
@@ -153,9 +159,21 @@ itemView enable {data,drag} myIdx item =
             , ("padding","0")
             , ("height",toString elementHeight ++ "px")
             ]
+        rowTag =
+            case opts.rowTagFunc of
+                Just f ->
+                    f myIdx
+                Nothing ->
+                    ""
+        label =
+            case opts.labelFunc of
+                Just f ->
+                    f item
+                Nothing ->
+                    toString item
     in
         Html.tr [] 
-            [ Html.td [] [Html.text "TODO: THIS"]
+            [ Html.td [] [Html.text rowTag]
             , Html.td
                 [ Html.Attributes.style <| makingWayStyle ++ moveStyle ++ changingStyle ++ constantStyle]
                 [ Html.button 
@@ -165,14 +183,14 @@ itemView enable {data,drag} myIdx item =
                     [Html.text ":::"]
                 , Html.div 
                     [Html.Attributes.style [("display","inline-block")]] 
-                    [item |> toString |> Html.text]
+                    [Html.text label]
                 ]
             ]
 
 
 
 view : Model a -> Html Msg
-view = viewWithEnable True
+view = viewWithOptions (Options True Nothing Nothing)
 
 elementHeight : Int
 elementHeight = 50
