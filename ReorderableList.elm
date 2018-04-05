@@ -20,7 +20,7 @@ type alias Drag =
 type alias Options val msg =
     { enable : Bool
     , rowTagFunc : Maybe (Index -> Html msg)
-    , labelFunc : Maybe (val -> Html msg)
+    , labelFunc : Maybe (Index -> val -> Html msg)
     , updownButtons : Maybe (Index -> val -> Bool -> Html msg)
     }
 
@@ -175,7 +175,7 @@ itemView msg opts {data,drag} myIdx item =
         label =
             case opts.labelFunc of
                 Just f ->
-                    f item
+                    f myIdx item
                 Nothing ->
                     Html.text (toString item)
         updownButtons = 
