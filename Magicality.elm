@@ -2,10 +2,19 @@ module Magicality exposing (..)
 
 type Magicality
     = Magician
-    | AspectedMagician
-    | Adept
     | MysticAdept
     | Technomancer
+    | Adept
+    | AspectedMagician
+
+listOfTypes : List Magicality
+listOfTypes = 
+    [ Magician
+    , MysticAdept
+    , Technomancer
+    , Adept
+    , AspectedMagician
+    ]
 
 getBaseMagic : Magicality -> Int -> Int
 getBaseMagic mag i =
@@ -76,7 +85,7 @@ viewMagicRating mag i =
         (2,Magician) ->
             "Magician -- 3 Magic"
         (2,MysticAdept) ->
-            "Magician -- 3 Magic"
+            "Mystic Adept -- 3 Magic"
         (2,Technomancer) ->
             "Technomancer -- 3 Resonance"
         (2,Adept) ->
@@ -87,7 +96,7 @@ viewMagicRating mag i =
         (1,Magician) ->
             "Magician -- 4 Magic"
         (1,MysticAdept) ->
-            "Magician -- 4 Magic"
+            "Mystic Adept -- 4 Magic"
         (1,Technomancer) ->
             "Technomancer -- 4 Resonance"
         (1,Adept) ->
@@ -98,7 +107,7 @@ viewMagicRating mag i =
         (0,Magician) ->
             "Magician -- 6 Magic"
         (0,MysticAdept) ->
-            "Magician -- 6 Magic"
+            "Mystic Adept -- 6 Magic"
         (0,Technomancer) ->
             "Technomancer -- 6 Resonance"
         (0,Adept) ->
@@ -129,7 +138,7 @@ viewMagicClass mag i =
         (2,Magician) ->
             "Magician -- 3 Magic, 5 spells"
         (2,MysticAdept) ->
-            "Magician -- 3 Magic, 5 spells"
+            "Mystic Adept -- 3 Magic, 5 spells"
         (2,Technomancer) ->
             "Technomancer -- 3 Resonance, 1 Complex Form"
         (2,Adept) ->
@@ -140,7 +149,7 @@ viewMagicClass mag i =
         (1,Magician) ->
             "Magician -- 4 Magic, two Rating 4 Magical skills, 7 spells"
         (1,MysticAdept) ->
-            "Magician -- 4 Magic, two Rating 4 Magical skills, 7 spells"
+            "Mystic Adept -- 4 Magic, two Rating 4 Magical skills, 7 spells"
         (1,Technomancer) ->
             "Technomancer -- 4 Resonance, two Rating 4 Resonance skills, 2 Complex Form"
         (1,Adept) ->
@@ -151,7 +160,7 @@ viewMagicClass mag i =
         (0,Magician) ->
             "Magician -- 6 Magic, two Rating 5 Magical skills, 10 spells"
         (0,MysticAdept) ->
-            "Magician -- 6 Magic, two Rating 5 Magical skills, 10 spells"
+            "Mystic Adept -- 6 Magic, two Rating 5 Magical skills, 10 spells"
         (0,Technomancer) ->
             "Technomancer -- 6 Resonance, two Rating 5 Resonance skills, 5 Complex Form"
         (0,Adept) ->
