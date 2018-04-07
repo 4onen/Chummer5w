@@ -8,6 +8,8 @@ import HtmlInputs
 
 import Priorities exposing (Priorities)
 import Magicality exposing (Magicality(..))
+import Metatype exposing (Metatype(..))
+import Attributes exposing (AttrObj, attrObj)
 
 type alias Character =
     { name : String
@@ -15,6 +17,8 @@ type alias Character =
     , priorities : Priorities
     , prioritiesLocked : Bool
     , magicClass : Magicality
+    , race : Metatype
+    , attributes : AttrObj
     }
 
 type Msg
@@ -31,6 +35,8 @@ default =
         Priorities.default
         False
         Magicality.Magician
+        (Human Nothing)
+        (attrObj 0 0 0 0 0 0 0 0 0 0 0)
 
 update : Msg -> Character -> Character
 update msg model =
@@ -50,6 +56,7 @@ view model =
         [ HtmlInputs.viewCheckbox "Ignore character creation rules" ToggleCharacterCreationRules model.ignoreCharacterCreationRules
         , viewPriorities model
         , viewMagicalityList model
+        , viewAttributes model
         ]
 
 viewPriorities : Character -> Html Msg
@@ -76,6 +83,10 @@ viewMagicalityList model =
         msgList = List.map ChangeMagicality magList
     in
         HtmlInputs.viewRadioButtons labelList msgList selected
+
+viewAttributes : Character -> Html Msg
+viewAttributes model =
+    Html.p [] [Html.text "Implement this, you dolt!"]
 
 subscriptions : Character -> Sub Msg
 subscriptions model =

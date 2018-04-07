@@ -16,6 +16,14 @@ listOfTypes =
     , AspectedMagician
     ]
 
+getBaseMagicality : Magicality -> Int -> (Magicality,Int)
+getBaseMagicality mag i =
+    case mag of
+        Technomancer ->
+            (mag,getBaseResonance mag i)
+        _ ->
+            (mag,getBaseMagic mag i)
+
 getBaseMagic : Magicality -> Int -> Int
 getBaseMagic mag i =
     case (i,mag) of
