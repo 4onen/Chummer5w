@@ -28,7 +28,7 @@ update msg model =
             {model|character = Character.update m model.character} ! []
 
 view model =
-    Html.map CharacterMsg <| Character.view model.character
+    Html.map CharacterMsg <| (Character.viewSelector>>Character.view) model.character
 
 subscriptions model =
     Sub.map CharacterMsg <| Character.subscriptions model.character

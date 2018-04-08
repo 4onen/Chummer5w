@@ -14,23 +14,22 @@ viewCheckbox label msg checked =
         , Html.text label
         ]
 
-viewRadioButtons : List String -> List msg -> Int -> Html msg
-viewRadioButtons labels msgs selected =
+viewRadioButtons : List String -> List msg -> msg -> Html msg
+viewRadioButtons labels msgs msgSelected =
     let
-        radio lbl msg idx =
+        radio lbl msg =
             Html.label 
                 [ Html.Attributes.style [("display","block")]]
                 [ Html.input
                     [ Html.Attributes.type_ "radio"
-                    , Html.Attributes.checked <| idx==selected
+                    , Html.Attributes.checked <| msg==msgSelected
                     , Html.Events.onClick msg
                     ] []
                 , Html.text lbl
                 ]
         len = max (List.length labels) (List.length msgs)
     in
-        List.map3 radio 
+        List.map2 radio 
             labels 
-            msgs 
-            (List.range 0 len)
+            msgs
         |> Html.fieldset []
