@@ -233,3 +233,47 @@ getSkillAndGroupPointCount ps =
         2 -> (28,2)
         3 -> (22,0)
         _ -> (18,0)
+
+canDefault : List Skill
+canDefault =
+    [ Archery
+    , Automatics
+    , Blades
+    , Clubs
+    , HeavyWeapons
+    , Longarms
+    , Pistols
+    , ThrowingWeapon
+    , UnarmedCombat
+    , Disguise
+    , Diving
+    , EscapeArtist
+    , Freefall
+    , Gymnastics
+    , Perception
+    , Running
+    , Sneaking
+    , Survival
+    , Swimming
+    , Tracking
+    , Con
+    , Etiquette
+    , Impersonation
+    , Instruction
+    , Intimidation
+    , Leadership
+    , Negotiation
+    , Performance
+    , AnimalHandling
+    , Armorer
+    , Computer
+    , Cybercombat
+    , Demolitions
+    , FirstAid
+    , Forgery
+    , Hacking
+    , Navigation
+    , Gunnery
+    , PilotGroundcraft
+    , PilotWatercraft
+    ]

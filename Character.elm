@@ -57,7 +57,7 @@ update msg model =
         TogglePriorityLock ->
             {model|prioritiesLocked = not model.prioritiesLocked}
         ChangeMagicality new ->
-            {model|magicality = new}
+            updateModelBasedOnNewMagicality new model
         ChangeRace new ->
             {model|race = new}
         AttrPoint (Buy attr) ->
@@ -87,12 +87,43 @@ updateModelBasedOnNewPriorities m model =
                 Attributes.set Attributes.RES 0 <| Attributes.set Attributes.MAG 0 <| model.attributes
             else
                 model.attributes
+        newMagicSkills = 
+            if (Attributes.get Attributes.MAG newMagicAttr) < 1 then
+                SkillLogic.magicChanged Magicality.Technomancer 0
+            else if (Attributes.get Attributes.RES newMagicAttr) < 1 then
+                SkillLogic.magicChanged Magicality.Adept 1
+            else
+                identity
+        
     in
         {model
             | priorities = newPriorities
             , race = newRace
             , attributes = newMagicAttr
+            , skills = newMagicSkills model.skills
             }
+
+updateModelBasedOnNewMagicality : Magicality -> Character -> Character
+updateModelBasedOnNewMagicality newMagicality model =
+    let
+        newMagicAttr = 
+            case newMagicality of
+                Magicality.Technomancer ->
+                    Attributes.set Attributes.MAG 0 model.attributes
+                _ ->
+                    Attributes.set Attributes.RES 0 model.attributes
+        newSkills =
+            case newMagicality of 
+                Magicality.Technomancer ->
+                    SkillLogic.magicChanged newMagicality (Attributes.get Attributes.RES newMagicAttr) model.skills
+                _ ->
+                    SkillLogic.magicChanged newMagicality (Attributes.get Attributes.MAG newMagicAttr) model.skills
+    in
+        {model
+                | magicality = newMagicality
+                , attributes = newMagicAttr
+                , skills = newSkills
+                }
 
 type alias ViewCharacter =
     { name : String

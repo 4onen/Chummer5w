@@ -46,33 +46,49 @@ update msg model =
         PointChange change ->
             {model|skills = changeSkillPoint change model.skills}
 
+magicChanged : Magicality -> Int -> Model -> Model
+magicChanged magicality rating model =
+    {model|skills = 
+        if rating<1 then
+            (zeroSkillByAttributes [Attributes.MAG,Attributes.RES] model.skills)
+        else if magicality == Magicality.Technomancer then
+            zeroSkillByAttribute Attributes.MAG model.skills
+        else 
+            zeroSkillByAttribute Attributes.RES model.skills
+    }
+
 changeSkillPoint : PointBuy Skill -> (List SkillEntry -> List SkillEntry)
 changeSkillPoint change =
-    case change of
-        Buy skill ->
-            List.map 
-                (\s -> 
-                    if s.skill==skill then 
-                        {s|pointsBought = s.pointsBought+1}
-                    else
-                        s
-                )
-        Sell skill ->
-            List.map
-                (\s -> 
-                    if s.skill==skill then 
-                        {s|pointsBought = s.pointsBought-1}
-                    else
-                        s
-                )
-        Set skill val ->
-            List.map
-                (\s -> 
-                    if s.skill==skill then 
-                        {s|pointsBought = s.pointsBought-1}
-                    else
-                        s
-                )
+    let
+        add1 skill s = if s.skill==skill then {s|pointsBought=s.pointsBought+1} else s
+        sub1 skill s = 
+            if s.skill==skill && s.pointsBought>0 then
+                {s|pointsBought=s.pointsBought-1}
+            else
+                s
+        set skill val s = if s.skill==skill then {s|pointsBought=val} else s
+    in
+        case change of
+            Buy skill ->
+                List.map <| add1 skill 
+            Sell skill ->
+                List.map <| sub1 skill
+            Set skill val ->
+                List.map <| set skill val
+
+zeroSkillByAttribute : Attribute -> List SkillEntry -> List SkillEntry
+zeroSkillByAttribute attr skills =
+    let
+        z s = if (getSkillAttribute s.skill) == attr then {s|pointsBought = 0} else s
+    in
+        List.map z skills
+
+zeroSkillByAttributes : List Attribute -> List SkillEntry -> List SkillEntry
+zeroSkillByAttributes attrs skills =
+    let
+        z s = if List.member (getSkillAttribute s.skill) attrs then {s|pointsBought = 0} else s
+    in
+        List.map z skills
 
 view : Priorities -> AttrObj -> Magicality -> Model -> Html Msg
 view ps attrs magicality model = 
@@ -85,7 +101,8 @@ type alias ViewSkillEntry =
     , skillGroup : String
     , pointsBought : Int
     , attr : Attribute
-    , attrVal : Int 
+    , attrVal : Int
+    , rating : Int
     }
 
 type alias ViewModel =
@@ -108,8 +125,15 @@ viewSelector ps attrs magicality {skills,searchQuery,tableState} =
                 attr = getSkillAttribute skill
                 attrVal = Attributes.get attr attrs
                 group = Maybe.withDefault "<None>" <| SkillGroups.getGroup skill
+                rating = 
+                    if (pointsBought > 0) then
+                        attrVal+pointsBought
+                    else if (List.member skill canDefault) then
+                        attrVal-1
+                    else
+                        0
             in
-                ViewSkillEntry skill group pointsBought attr attrVal
+                ViewSkillEntry skill group pointsBought attr attrVal rating
         viewSkillEntries = List.map skillEntryToSkillView skills
     in
         ViewModel
@@ -126,7 +150,7 @@ viewSelector ps attrs magicality {skills,searchQuery,tableState} =
                     [ Table.stringColumn "Skill" (.skill>>Basics.toString)
                     , Table.stringColumn "Group" (.skillGroup)
                     , Table.stringColumn "Attribute" (.attr>>Basics.toString)
-                    , Table.intColumn "Rating" (\vs -> vs.attrVal + vs.pointsBought)
+                    , Table.intColumn "Rating" (.rating)
                     , pointSpendColumn
                     ]
                 }
@@ -149,7 +173,7 @@ pointSpendColumn =
                 { attributes = []
                 , children = 
                     data.pointsBought
-                        |> PointBuy.buyInterface data.skill
+                        |> PointBuy.buyInterfaceWithDisable (data.attrVal<1) data.skill
                         |> List.map (Html.map PointChange)
                 }
             )
