@@ -147,23 +147,10 @@ getBaseType m =
             Human Nothing
 
 getBaseStats : Metatype -> (Magicality,Int) -> AttrObj
-getBaseStats metatype (magicality,rating) =
+getBaseStats metatype (magicality,magPriority) =
     let
-        (mag,res) = 
-            if rating < 1 then
-                (0,0)
-            else
-                case magicality of
-                    Magician -> 
-                        (rating,0)
-                    MysticAdept -> 
-                        (rating,0) 
-                    Technomancer -> 
-                        (0,rating) 
-                    Adept -> 
-                        (rating,0) 
-                    AspectedMagician -> 
-                        (rating,0) 
+        mag = Magicality.getBaseMagic magicality magPriority
+        res = Magicality.getBaseResonance magicality magPriority
     in
         case metatype of
             Dwarf Nothing ->
@@ -179,26 +166,16 @@ getBaseStats metatype (magicality,rating) =
             Troll Nothing ->
                 attrObj 5 1 1 5 1 1 1 1 1 mag res
             _ ->
-                getBaseStats (Human Nothing) (magicality,rating)
+                getBaseStats (Human Nothing) (magicality,magPriority)
 
 getMaxStats : Metatype -> (Magicality,Int) -> AttrObj
-getMaxStats metatype (magicality,rating) =
+getMaxStats metatype (magicality,magPriority) =
     let
-        (mag,res) = 
-            if rating < 1 then
-                (0,0)
-            else
-                case magicality of
-                    Magician ->
-                        (6,0)
-                    MysticAdept ->
-                        (6,0)
-                    Technomancer ->
-                        (0,6)
-                    Adept ->
-                        (6,0)
-                    AspectedMagician ->
-                        (6,0)
+        (mag,res)=
+            case magicality of 
+                Mundane -> (0,0)
+                Technomancer -> (0,6)
+                _ -> (6,0)
     in
         case metatype of
             Dwarf Nothing ->
@@ -214,7 +191,7 @@ getMaxStats metatype (magicality,rating) =
             Troll Nothing ->
                 attrObj 10 5 6 10 6 5 5 4 6 mag res
             _ ->
-                getMaxStats (Human Nothing) (magicality,rating)
+                getMaxStats (Human Nothing) (magicality,magPriority)
 
 getSpecialPoints : Int -> Metatype -> Int
 getSpecialPoints metaPriorityIdx metatype =

@@ -79,25 +79,30 @@ updateModelBasedOnNewPriorities m model =
             else
                 Metatype.Human Nothing
         newMagicPriorityIdx = Priorities.getPriorityIndex Priorities.MagicOrResonance newPriorities
+        newMagicality = 
+            if not <| List.member model.magicality (Magicality.getTypesByPriorityIdx newMagicPriorityIdx) then
+                case List.head (Magicality.getTypesByPriorityIdx newMagicPriorityIdx) of
+                    Just n -> n
+                    Nothing -> Magicality.Mundane
+            else
+                model.magicality
         newMagicAttr = 
             if newMagicPriorityIdx>3 
-                || (newMagicPriorityIdx==3 && (model.magicality/=Magicality.Adept && model.magicality/=Magicality.AspectedMagician))
-                || (newMagicPriorityIdx==0 && (model.magicality==Magicality.Adept || model.magicality==Magicality.AspectedMagician))
+                || (newMagicPriorityIdx==3 && (newMagicality/=Magicality.Adept && newMagicality/=Magicality.AspectedMagician))
+                || (newMagicPriorityIdx==0 && (newMagicality==Magicality.Adept || newMagicality==Magicality.AspectedMagician))
             then
                 Attributes.set Attributes.RES 0 <| Attributes.set Attributes.MAG 0 <| model.attributes
             else
                 model.attributes
-        newMagicSkills = 
-            if (Attributes.get Attributes.MAG newMagicAttr) < 1 then
-                SkillLogic.magicChanged Magicality.Technomancer 0
-            else if (Attributes.get Attributes.RES newMagicAttr) < 1 then
-                SkillLogic.magicChanged Magicality.Adept 1
+        newMagicSkills =
+            if newMagicality/=model.magicality then
+                SkillLogic.magicChanged newMagicality (max (Attributes.get Attributes.MAG newMagicAttr) (Attributes.get Attributes.RES newMagicAttr))
             else
                 identity
-        
     in
         {model
             | priorities = newPriorities
+            , magicality = newMagicality
             , race = newRace
             , attributes = newMagicAttr
             , skills = newMagicSkills model.skills
@@ -138,6 +143,7 @@ type alias ViewCharacter =
     , boughtAttributes : AttrObj
     , maxAttributes : AttrObj
     , attributePointCount : Int
+    , spAttributePointCount : Int
     , skills : SkillLogic.Model
     }
 
@@ -147,8 +153,8 @@ viewSelector chr =
         racePriority = Priorities.getPriorityIndex Priorities.Metatype chr.priorities
         magicPriority = Priorities.getPriorityIndex Priorities.MagicOrResonance chr.priorities
         magicRating = Tuple.second <| Magicality.getBaseMagicality chr.magicality magicPriority
-        raceBaseAttributes = Metatype.getBaseStats chr.race (chr.magicality,magicRating)
-        raceMaxAttributes = Metatype.getMaxStats chr.race (chr.magicality,magicRating)
+        raceBaseAttributes = Metatype.getBaseStats chr.race (chr.magicality,magicPriority)
+        raceMaxAttributes = Metatype.getMaxStats chr.race (chr.magicality,magicPriority)
     in
         ViewCharacter
             ( chr.name )
@@ -163,6 +169,7 @@ viewSelector chr =
             ( chr.attributes )
             ( raceMaxAttributes )
             ( Attributes.getPriorityPointCount chr.priorities )
+            ( Metatype.getSpecialPoints racePriority chr.race )
             ( chr.skills )
 
 
@@ -177,7 +184,7 @@ view model =
         [ viewPriorities model.prioritiesLocked model.magicality model.priorities
         , viewMagicalityList model.magicPriority model.magicality
         , viewMetatypeSelection model.priorities model.race
-        , Html.map AttrPoint <| AttributesView.view model.baseAttributes model.boughtAttributes model.maxAttributes model.attributePointCount
+        , Html.map AttrPoint <| AttributesView.view model.baseAttributes model.boughtAttributes model.maxAttributes model.attributePointCount model.spAttributePointCount
         , Html.map SkillMsg <| SkillLogic.view model.priorities (Attributes.add model.baseAttributes model.boughtAttributes) model.magicality model.skills
         ]
 
@@ -193,7 +200,7 @@ viewPriorities locked magicality priorities =
 viewMagicalityList : Int -> Magicality -> Html Msg
 viewMagicalityList magicPriority magicality =
     let
-        magList = if magicPriority==4 then [Magicality.Adept] else Magicality.listOfTypes
+        magList = Magicality.getTypesByPriorityIdx magicPriority
         labelList = List.map ((flip Magicality.viewMagicClass) magicPriority) magList 
     in
         magicality

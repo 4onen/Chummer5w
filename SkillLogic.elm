@@ -1,5 +1,6 @@
 module SkillLogic exposing (..)
 
+import Dict exposing (Dict)
 import Html exposing (Html)
 
 import Table
@@ -10,7 +11,7 @@ import Magicality exposing (Magicality)
 import Attributes exposing (Attribute(..), AttrObj)
 
 import Skills exposing (..)
-import SkillGroups exposing (..)
+import SkillGroups
 
 type alias SkillEntry =
     { skill : Skill
@@ -18,7 +19,8 @@ type alias SkillEntry =
     }
 
 type alias Model =
-    { skills : List SkillEntry
+    { groups : Dict String Int
+    , skills : List SkillEntry
     , searchQuery : String
     , tableState : Table.State
     }
@@ -26,15 +28,19 @@ type alias Model =
 default : Model
 default =
     Model
+        (SkillGroups.getCompleteGroupList
+            |> List.map ((flip (,)) 0) 
+            |> Dict.fromList
+        )
         (List.map ((flip SkillEntry) 0) all)
         ("")
         (Table.initialSort "Rating")
-
 
 type Msg
     = SetQuery String
     | SetTableState Table.State
     | PointChange (PointBuy Skill)
+    | GroupPointChange (PointBuy String)
 
 update : Msg -> Model -> Model
 update msg model =
@@ -45,17 +51,29 @@ update msg model =
             {model|tableState = newState}
         PointChange change ->
             {model|skills = changeSkillPoint change model.skills}
+        GroupPointChange change ->
+            {model|groups = changeGroupPoint change model.groups}
 
 magicChanged : Magicality -> Int -> Model -> Model
-magicChanged magicality rating model =
+magicChanged magicality priority model =
     {model|skills = 
-        if rating<1 then
+        if priority>3 || magicality==Magicality.Mundane then
             (zeroSkillByAttributes [Attributes.MAG,Attributes.RES] model.skills)
         else if magicality == Magicality.Technomancer then
             zeroSkillByAttribute Attributes.MAG model.skills
         else 
             zeroSkillByAttribute Attributes.RES model.skills
     }
+
+changeGroupPoint : PointBuy String -> (Dict String Int -> Dict String Int)
+changeGroupPoint change =
+    case change of
+        Buy group ->
+            Dict.update group (Maybe.map ((+) 1))
+        Sell group ->
+            Dict.update group (Maybe.map (\v -> if v>0 then v-1 else 0))
+        Set group val ->
+            Dict.update group (Maybe.map (always val))
 
 changeSkillPoint : PointBuy Skill -> (List SkillEntry -> List SkillEntry)
 changeSkillPoint change =
@@ -124,7 +142,7 @@ viewSelector ps attrs magicality {skills,searchQuery,tableState} =
             let
                 attr = getSkillAttribute skill
                 attrVal = Attributes.get attr attrs
-                group = Maybe.withDefault "<None>" <| SkillGroups.getGroup skill
+                group = Maybe.withDefault "" <| SkillGroups.getGroup skill
                 rating = 
                     if (pointsBought > 0) then
                         attrVal+pointsBought
@@ -134,7 +152,9 @@ viewSelector ps attrs magicality {skills,searchQuery,tableState} =
                         0
             in
                 ViewSkillEntry skill group pointsBought attr attrVal rating
-        viewSkillEntries = List.map skillEntryToSkillView skills
+        viewSkillEntries = 
+            skills
+                |> List.map skillEntryToSkillView
     in
         ViewModel
             ( attrs )

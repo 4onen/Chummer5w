@@ -1,20 +1,32 @@
 module Magicality exposing (..)
 
+import Dict exposing (Dict)
+
 type Magicality
     = Magician
     | MysticAdept
     | Technomancer
     | Adept
     | AspectedMagician
+    | Mundane
 
-listOfTypes : List Magicality
-listOfTypes = 
-    [ Magician
-    , MysticAdept
-    , Technomancer
-    , Adept
-    , AspectedMagician
-    ]
+typesByPriorityIdx : Dict Int (List Magicality)
+typesByPriorityIdx =
+    Dict.fromList 
+        [ (0,[Magician,MysticAdept,Technomancer])
+        , (1,[Magician,MysticAdept,Technomancer,Adept,AspectedMagician])
+        , (2,[Magician,MysticAdept,Technomancer,Adept,AspectedMagician])
+        , (3,[Adept,AspectedMagician])
+        , (4,[Mundane])
+        ]
+
+getTypesByPriorityIdx : Int -> List Magicality
+getTypesByPriorityIdx pIdx =
+    case Dict.get pIdx typesByPriorityIdx of
+        Just lst ->
+            lst
+        Nothing ->
+            [Mundane]
 
 getBaseMagicality : Magicality -> Int -> (Magicality,Int)
 getBaseMagicality mag i =
@@ -76,7 +88,7 @@ getBaseResonance mag i =
 viewMagicRating : Magicality -> Int -> String
 viewMagicRating mag i =
     case (i,mag) of
-        (4,_) -> 
+        (_,Mundane) -> 
             "Mundane -- 0 Magic, 0 Resonance"
         
         (3,Magician) ->
@@ -129,7 +141,7 @@ viewMagicRating mag i =
 viewMagicClass : Magicality -> Int -> String
 viewMagicClass mag i =
     case (i,mag) of
-        (4,_) -> 
+        (_,Mundane) -> 
             "Mundane -- 0 Magic, 0 Resonance"
         
         (3,Magician) ->

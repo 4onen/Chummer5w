@@ -1,5 +1,6 @@
 module SkillGroups exposing (..)
 
+import Magicality exposing (Magicality)
 import Skills exposing (Skill(..))
 
 acting : List Skill
@@ -109,7 +110,6 @@ tasking =
     , Registering
     ]
 
-
 getGroup : Skill -> Maybe String
 getGroup skill =
          if List.member skill acting then
@@ -180,3 +180,47 @@ getGroupSkillList group =
             tasking
         _ -> 
             []
+
+getCompleteGroupList : List String
+getCompleteGroupList =
+    [ "Acting"
+    , "Athletics"
+    , "Biotech"
+    , "Close Combat"
+    , "Conjuring"
+    , "Cracking"
+    , "Electronics"
+    , "Enchanting"
+    , "Engineering"
+    , "Firearms"
+    , "Influence"
+    , "Outdoors"
+    , "Sorcery"
+    , "Stealth"
+    , "Tasking"
+    ]
+    
+
+getGroupList : Magicality -> List String
+getGroupList magicality =
+    [ "Acting"
+    , "Athletics"
+    , "Biotech"
+    , "Close Combat"
+    , "Conjuring"
+    , "Cracking"
+    , "Electronics"
+    , "Engineering"
+    , "Firearms"
+    , "Influence"
+    , "Outdoors"
+    , "Stealth"
+    ] ++
+    if magicality==Magicality.Mundane then
+        []
+    else if magicality==Magicality.Technomancer then
+        ["Tasking"]
+    else if magicality==Magicality.Adept then
+        []
+    else
+        ["Enchanting","Sorcery"]
