@@ -37,16 +37,16 @@ type Msg
 
 default : Character
 default =
-    Character
-        ""
-        25
-        Priorities.default
-        False
-        Magicality.Magician
-        (Human Nothing)
-        (attrObj 0 0 0 0 0 0 0 0 0 0 0)
-        (attrObj 0 0 0 0 0 0 0 0 0 0 0)
-        (SkillLogic.default)
+    { name = ""
+    , baseKarma = 25
+    , priorities = Priorities.default
+    , prioritiesLocked = False
+    , magicality = Magicality.Magician
+    , race = (Human Nothing)
+    , attributes = (attrObj 0 0 0 0 0 0 0 0 0 0 0)
+    , karmaAttributes = (attrObj 0 0 0 0 0 0 0 0 0 0 0)
+    , skills = (SkillLogic.default)
+    }
 
 update : Msg -> Character -> Character
 update msg model =

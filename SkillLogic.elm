@@ -17,24 +17,24 @@ type alias Model =
     { skills : Dict Skill Int
     , groups : Dict Group Int
     , searchQuery : String
-    , tableState : Table.State
+    , skillTableState : Table.State
     , groupTableState : Table.State
     }
 
 default : Model
 default =
-    Model
-        (all
+    { skills = 
+        all
             |> List.map ((flip (,)) 0)
             |> Dict.fromList
-        )
-        (SkillGroups.getCompleteGroupList
+    , groups = 
+        SkillGroups.getCompleteGroupList
             |> List.map ((flip (,)) 0) 
             |> Dict.fromList
-        )
-        ("")
-        (Table.initialSort "Skill")
-        (Table.initialSort "Group")
+    , searchQuery = ""
+    , skillTableState = Table.initialSort "Skill"
+    , groupTableState = Table.initialSort "Group"
+    }
 
 type Msg
     = SetQuery String
@@ -48,14 +48,14 @@ update msg model =
     case msg of
         SetQuery newQuery ->
             {model|searchQuery = newQuery}
-        PointTableState newState ->
-            {model|tableState = newState}
         PointChange change ->
             {model|skills = changeSkillPoint change model.skills}
-        GroupPointTableState newState ->
-            {model|groupTableState = newState}
         GroupPointChange change ->
             {model|groups = changeGroupPoint change model.groups}
+        PointTableState newState ->
+            {model|skillTableState = newState}
+        GroupPointTableState newState ->
+            {model|groupTableState = newState}
 
 changeGroupPoint : PointBuy Group -> (Dict Group Int -> Dict Group Int)
 changeGroupPoint change =
@@ -127,7 +127,7 @@ view ps attrs magicality model =
 
 type alias ViewSkillEntry =
     { skill : Skill
-    , skillGroup : String
+    , skillGroup : Group
     , groupVal : Int
     , pointsBought : Int
     , attr : Attribute
@@ -142,15 +142,15 @@ type alias ViewModel =
     , skillPoints : Int
     , groupPoints : Int
     , searchQuery : String
-    , tableState : Table.State
-    , tableConfig : Table.Config ViewSkillEntry Msg
+    , skillTableState : Table.State
+    , skillTableConfig : Table.Config ViewSkillEntry Msg
     , groupTableState : Table.State
     , groupTableConfig : Table.Config (Group,Int) Msg
     }
 
 
 viewSelector : Priorities -> AttrObj -> Magicality -> Model -> ViewModel
-viewSelector ps attrs magicality {skills,groups,searchQuery,tableState,groupTableState} =
+viewSelector ps attrs magicality {skills,groups,searchQuery,skillTableState,groupTableState} =
     let
         (skillPoints,groupPoints) = getSkillAndGroupPointCount ps
         skillEntryToSkillView (skill,pointsBought) =
@@ -201,15 +201,15 @@ viewSelector ps attrs magicality {skills,groups,searchQuery,tableState,groupTabl
                             )
                     )
     in
-        ViewModel
-            ( attrs )
-            ( viewSkillEntries )
-            ( groupData )
-            ( skillPoints )
-            ( groupPoints )
-            ( searchQuery )
-            ( tableState )
-            ( Table.config 
+        { attrs = attrs
+        , allowedSkills = viewSkillEntries
+        , allowedGroups = groupData
+        , skillPoints = skillPoints
+        , groupPoints = groupPoints
+        , searchQuery = searchQuery
+        , skillTableState = skillTableState
+        , skillTableConfig =
+            Table.config
                 { toId = .skill>>Basics.toString
                 , toMsg = PointTableState
                 , columns =
@@ -220,9 +220,9 @@ viewSelector ps attrs magicality {skills,groups,searchQuery,tableState,groupTabl
                     , Table.intColumn "Rating" (.rating)
                     ]
                 }
-            )
-            ( groupTableState )
-            ( Table.config 
+        , groupTableState = groupTableState
+        , groupTableConfig =
+            Table.config
                 { toId = (Tuple.first)
                 , toMsg = GroupPointTableState
                 , columns =
@@ -230,8 +230,7 @@ viewSelector ps attrs magicality {skills,groups,searchQuery,tableState,groupTabl
                     , groupPointColumn
                     ]
                 }
-            )
-
+        }
 
 realView : ViewModel -> List (Html Msg)
 realView model = 
@@ -243,7 +242,7 @@ realView model =
     , Html.details []
         [ Html.summary [] [Html.text "Skills"]
         , Html.div [] [Html.text ("Skill Points "++(toString (model.skillPoints - (List.sum (List.map .pointsBought model.allowedSkills)))))]
-        , Table.view model.tableConfig model.tableState model.allowedSkills
+        , Table.view model.skillTableConfig model.skillTableState model.allowedSkills
         ]
     ]
     
