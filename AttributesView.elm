@@ -9,21 +9,21 @@ import List.Extra
 import PointBuy exposing (PointBuy(..))
 import Attributes exposing (..)
 
-view : AttrObj -> AttrObj -> AttrObj -> Int -> Int -> Html (PointBuy Attribute)
-view bases bought maxes availableAttributePoints availableSpecialPoints =
-    ( List.map3 
-        (\(a1,c) (a2, s) (a3,m) ->
-            if a1==a2 && a2 == a3 then
+view : AttrObj -> AttrObj -> AttrObj -> AttrObj-> Int -> Int -> (PointBuy Attribute -> msg) -> (PointBuy Attribute -> msg) -> Html msg
+view bases bought karmas maxes availableAttributePoints availableSpecialPoints pointTagger karmaPointTagger =
+    ( List.map4 
+        (\(a1,c) (a2, s) (a3,k) (a4,m) ->
+            if a1==a2 && a2 == a3 && a3==a4 then
                 case fromDictStore a1 of
                     Just a ->
-                        Just (a,c,s,m)
+                        Just (a,c,s,k,m)
                     Nothing ->
                         Nothing
             else 
                 Nothing
-        ) (Dict.toList bases) (Dict.toList bought) (Dict.toList maxes) )
+        ) (Dict.toList bases) (Dict.toList bought) (Dict.toList karmas) (Dict.toList maxes) )
         |> List.filterMap identity
-        |> List.map (\(a,c,spent,m) -> (viewAttribute (a,c,spent,m),spent))
+        |> List.map (\(a,c,spent,k,m) -> (viewAttribute (a,c,spent,k,m) pointTagger karmaPointTagger,spent))
         |> List.Extra.splitAt 8
         |> (\(simples,specials) -> 
             let
@@ -60,10 +60,15 @@ view bases bought maxes availableAttributePoints availableSpecialPoints =
         |> Html.details []
 
 
-viewAttribute : (Attribute, Int, Int, Int) -> Html (PointBuy Attribute)
-viewAttribute (attr,base,bought,maxVal) =
+viewAttribute : (Attribute, Int, Int, Int, Int) -> (PointBuy Attribute -> msg) -> (PointBuy Attribute -> msg) -> Html msg
+viewAttribute (attr,base,bought,karmaPoints,maxVal) pointTagger karmaPointTagger =
     let
-        current = if maxVal>0 then base+bought else 0
+        current = if maxVal>0 then base+bought+karmaPoints else 0
+        calcKarma k =
+            if k<1 then 
+                0
+            else
+                ((base+bought+k)*5+(calcKarma (k-1)))
     in
         Html.tr []
             [ Html.td 
@@ -73,6 +78,17 @@ viewAttribute (attr,base,bought,maxVal) =
             , Html.td [] [current |> Basics.toString |> Html.text]
             , Html.td [] [Html.text "/"]
             , Html.td [] [maxVal |> Basics.toString |> Html.text]
+            , Html.map pointTagger 
+                <| Html.td [] 
+                    (PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then bought else 0))
+            , Html.map karmaPointTagger 
+                <| Html.td []
+                    (PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then karmaPoints else 0))
             , Html.td [] 
-                (PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then bought else 0))
+                [ Html.text <|
+                    if karmaPoints < 1 then 
+                        ""
+                    else 
+                        (toString <| calcKarma karmaPoints)++" Karma"
+                ]
             ]

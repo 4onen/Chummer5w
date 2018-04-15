@@ -3,187 +3,118 @@ module Skills exposing (..)
 import Priorities exposing (Priorities)
 import Attributes exposing (Attribute(..))
 
-type Skill
-    = Diving
-    | Freefall
-    | Automatics
-    | Archery
-    | Clubs
-    | Blades
-    | EscapeArtist
-    | Gunnery
-    | HeavyWeapons
-    | Gymnastics
-    | Locksmith
-    | Longarms
-    | Pistols
-    | Palming
-    | Sneaking
-    | ThrowingWeapon
-    | UnarmedCombat
-    | PilotAerospace
-    | PilotWalker
-    | PilotGroundcraft
-    | PilotWatercraft
-    | Running
-    | Swimming
-    | AstralCombat
-    | Survival
-    | Arcana
-    | AutomotiveMechanic
-    | Chemistry
-    | Cybertechnology
-    | Demolitions
-    | FirstAid
-    | Hacking
-    | Medicine
-    | Forgery
-    | AeronauticMechanic
-    | Armorer
-    | Biotechnology
-    | Computer
-    | Cybercombat
-    | ElectronicWarfare
-    | IndustrialMechanic
-    | Hardware
-    | NauticalMechanic
-    | Software
-    | Artisan
-    | Disguise
-    | Perception
-    | Tracking
-    | Assensing
-    | Navigation
-    | Con
-    | Instruction
-    | Leadership
-    | Performance
-    | AnimalHandling
-    | Etiquette
-    | Intimidation
-    | Negotiation
-    | Impersonation
-    | Alchemy
-    | Artificing
-    | Binding
-    | RitualSpellcasting
-    | Summoning
-    | Disenchanting
-    | Banishing
-    | Counterspelling
-    | Spellcasting
-    | Enchanting
-    | Compiling
-    | Registering
-    | Decompiling
+type alias Skill = String
 
 body : List Skill
-body = [Diving, Freefall]
+body = 
+    [ "Diving"
+    , "Freefall"
+    ]
 
 agility : List Skill
 agility = 
-    [ Automatics
-    , Archery
-    , Clubs
-    , Blades
-    , EscapeArtist
-    , Gunnery
-    , HeavyWeapons
-    , Gymnastics
-    , Locksmith
-    , Longarms
-    , Pistols
-    , Palming
-    , Sneaking
-    , ThrowingWeapon
-    , UnarmedCombat
+    [ "Automatics"
+    , "Archery"
+    , "Clubs"
+    , "Blades"
+    , "EscapeArtist"
+    , "Gunnery"
+    , "HeavyWeapons"
+    , "Gymnastics"
+    , "Locksmith"
+    , "Longarms"
+    , "Pistols"
+    , "Palming"
+    , "Sneaking"
+    , "ThrowingWeapon"
+    , "UnarmedCombat"
     ]
 
 reaction : List Skill
 reaction =
-    [ PilotAerospace
-    , PilotWalker
-    , PilotGroundcraft
-    , PilotWatercraft
+    [ "PilotAerospace"
+    , "PilotWalker"
+    , "PilotGroundcraft"
+    , "PilotWatercraft"
     ]
 
 strength : List Skill
 strength = 
-    [ Running
-    , Swimming
+    [ "Running"
+    , "Swimming"
     ]
 
 willpower : List Skill
 willpower =
-    [ AstralCombat
-    , Survival
+    [ "AstralCombat"
+    , "Survival"
     ]
 
 logic : List Skill
 logic = 
-    [ Arcana
-    , AutomotiveMechanic
-    , Chemistry
-    , Cybertechnology
-    , Demolitions
-    , FirstAid
-    , Hacking
-    , Medicine
-    , Forgery
-    , AeronauticMechanic
-    , Armorer
-    , Biotechnology
-    , Computer
-    , Cybercombat
-    , ElectronicWarfare
-    , IndustrialMechanic
-    , Hardware
-    , NauticalMechanic
-    , Software
+    [ "Arcana"
+    , "AutomotiveMechanic"
+    , "Chemistry"
+    , "Cybertechnology"
+    , "Demolitions"
+    , "FirstAid"
+    , "Hacking"
+    , "Medicine"
+    , "Forgery"
+    , "AeronauticMechanic"
+    , "Armorer"
+    , "Biotechnology"
+    , "Computer"
+    , "Cybercombat"
+    , "ElectronicWarfare"
+    , "IndustrialMechanic"
+    , "Hardware"
+    , "NauticalMechanic"
+    , "Software"
     ]
 
 intuition : List Skill
 intuition =
-    [ Artisan
-    , Disguise
-    , Perception
-    , Tracking
-    , Assensing
-    , Navigation
+    [ "Artisan"
+    , "Disguise"
+    , "Perception"
+    , "Tracking"
+    , "Assensing"
+    , "Navigation"
     ]
 
 charisma : List Skill
 charisma =
-    [ Con
-    , Instruction
-    , Leadership
-    , Performance
-    , AnimalHandling
-    , Etiquette
-    , Intimidation
-    , Negotiation
-    , Impersonation
+    [ "Con"
+    , "Instruction"
+    , "Leadership"
+    , "Performance"
+    , "AnimalHandling"
+    , "Etiquette"
+    , "Intimidation"
+    , "Negotiation"
+    , "Impersonation"
     ]
 
 magic : List Skill
 magic =
-    [ Alchemy
-    , Artificing
-    , Binding
-    , RitualSpellcasting
-    , Summoning
-    , Disenchanting
-    , Banishing
-    , Counterspelling
-    , Spellcasting
-    , Enchanting
+    [ "Alchemy"
+    , "Artificing"
+    , "Binding"
+    , "RitualSpellcasting"
+    , "Summoning"
+    , "Disenchanting"
+    , "Banishing"
+    , "Counterspelling"
+    , "Spellcasting"
+    , "Enchanting"
     ]
 
 resonance : List Skill
 resonance = 
-    [ Compiling
-    , Registering
-    , Decompiling
+    [ "Compiling"
+    , "Registering"
+    , "Decompiling"
     ]
 
 all : List Skill
@@ -224,6 +155,32 @@ getSkillAttribute skill =
     else --Must be exotic
         AGI --NOPE. Not writing this case right now.
 
+getAttributeSkills : Attribute -> List Skill
+getAttributeSkills attr = 
+    case attr of
+        BOD ->
+            body
+        AGI ->
+            agility
+        REA ->
+            reaction
+        STR ->
+            strength
+        WIL -> 
+            willpower
+        LOG ->
+            logic
+        INT ->
+            intuition
+        CHA ->
+            charisma
+        MAG ->
+            magic
+        RES ->
+            resonance
+        _ ->
+            []
+
 
 getSkillAndGroupPointCount : Priorities -> (Int,Int)
 getSkillAndGroupPointCount ps =
@@ -236,44 +193,44 @@ getSkillAndGroupPointCount ps =
 
 canDefault : List Skill
 canDefault =
-    [ Archery
-    , Automatics
-    , Blades
-    , Clubs
-    , HeavyWeapons
-    , Longarms
-    , Pistols
-    , ThrowingWeapon
-    , UnarmedCombat
-    , Disguise
-    , Diving
-    , EscapeArtist
-    , Freefall
-    , Gymnastics
-    , Perception
-    , Running
-    , Sneaking
-    , Survival
-    , Swimming
-    , Tracking
-    , Con
-    , Etiquette
-    , Impersonation
-    , Instruction
-    , Intimidation
-    , Leadership
-    , Negotiation
-    , Performance
-    , AnimalHandling
-    , Armorer
-    , Computer
-    , Cybercombat
-    , Demolitions
-    , FirstAid
-    , Forgery
-    , Hacking
-    , Navigation
-    , Gunnery
-    , PilotGroundcraft
-    , PilotWatercraft
+    [ "Archery"
+    , "Automatics"
+    , "Blades"
+    , "Clubs"
+    , "HeavyWeapons"
+    , "Longarms"
+    , "Pistols"
+    , "ThrowingWeapon"
+    , "UnarmedCombat"
+    , "Disguise"
+    , "Diving"
+    , "EscapeArtist"
+    , "Freefall"
+    , "Gymnastics"
+    , "Perception"
+    , "Running"
+    , "Sneaking"
+    , "Survival"
+    , "Swimming"
+    , "Tracking"
+    , "Con"
+    , "Etiquette"
+    , "Impersonation"
+    , "Instruction"
+    , "Intimidation"
+    , "Leadership"
+    , "Negotiation"
+    , "Performance"
+    , "AnimalHandling"
+    , "Armorer"
+    , "Computer"
+    , "Cybercombat"
+    , "Demolitions"
+    , "FirstAid"
+    , "Forgery"
+    , "Hacking"
+    , "Navigation"
+    , "Gunnery"
+    , "PilotGroundcraft"
+    , "PilotWatercraft"
     ]

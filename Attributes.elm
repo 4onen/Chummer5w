@@ -188,12 +188,6 @@ add lefts rights =
             rights
             Dict.empty
 
-type alias RuleCheck =
-    { overMax : List Attribute
-    , atMax : List Attribute
-    , overSpent : Bool
-    }
-
 
 getPriorityPointCount : Priorities -> Int
 getPriorityPointCount ps =
@@ -205,19 +199,41 @@ getPriorityPointCount ps =
         _ -> 12
 
 
-ruleCheck : AttrObj -> AttrObj -> AttrObj -> Priorities -> RuleCheck
-ruleCheck bases boughts maximums ps =
+calculateKarma : AttrObj -> AttrObj -> AttrObj -> Int
+calculateKarma bases boughts karmas =
     let
-        leftStep = (\_ _ r -> r)
-        bothStep = 
-            (\sattr curr max r ->
-                { r 
-                    | overMax = if curr>max then sattr::r.overMax else r.overMax
-                    , atMax = if curr==max then sattr::r.atMax else r.atMax
-                    }
-            )
-        rightStep = (\_ _ r -> r)
+        leftStep _ _ r = r
+        bothStep a curr karmaPts r =
+            if karmaPts < 1 then
+                r
+            else
+                (5*(curr+karmaPts)) + (bothStep a curr (karmaPts-1) r)
+        rightStep _ _ r = r
         currents = add bases boughts
+    in
+        Dict.merge leftStep bothStep rightStep
+            currents
+            karmas
+            0
+
+
+type alias RuleCheck =
+    { overMax : List Attribute
+    , atMax : List Attribute
+    , overSpent : Bool
+    }
+
+ruleCheck : AttrObj -> AttrObj -> AttrObj -> AttrObj -> Priorities -> RuleCheck
+ruleCheck bases boughts karmas maximums ps =
+    let
+        leftStep _ _ r = r
+        bothStep sattr curr max r = 
+            { r 
+                | overMax = if curr>max then sattr::r.overMax else r.overMax
+                , atMax = if curr==max then sattr::r.atMax else r.atMax
+                }
+        rightStep _ _ r = r
+        currents = add (add bases boughts) karmas
         overSpent = ((Dict.values>>List.sum) currents) > pointsAvailable 
         initialCheck = 
             Dict.merge

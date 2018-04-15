@@ -16,11 +16,13 @@ import SkillLogic
 
 type alias Character =
     { name : String
+    , baseKarma : Int
     , priorities : Priorities
     , prioritiesLocked : Bool
     , magicality : Magicality
     , race : Metatype
     , attributes : AttrObj
+    , karmaAttributes : AttrObj
     , skills : SkillLogic.Model
     }
 
@@ -30,16 +32,19 @@ type Msg
     | ChangeMagicality Magicality
     | ChangeRace Metatype
     | AttrPoint (PointBuy Attribute)
+    | KAttrPoint (PointBuy Attribute)
     | SkillMsg SkillLogic.Msg
 
 default : Character
 default =
     Character
         ""
+        25
         Priorities.default
         False
         Magicality.Magician
         (Human Nothing)
+        (attrObj 0 0 0 0 0 0 0 0 0 0 0)
         (attrObj 0 0 0 0 0 0 0 0 0 0 0)
         (SkillLogic.default)
 
@@ -66,6 +71,12 @@ update msg model =
             {model|attributes = Attributes.decrease attr model.attributes}
         AttrPoint (Set attr val) ->
             {model|attributes = Attributes.set attr val model.attributes}
+        KAttrPoint (Buy attr) ->
+            {model|karmaAttributes = Attributes.increase attr model.karmaAttributes}
+        KAttrPoint (Sell attr) ->
+            {model|karmaAttributes = Attributes.decrease attr model.karmaAttributes}
+        KAttrPoint (Set attr val) ->
+            {model|karmaAttributes = Attributes.set attr val model.karmaAttributes}
         SkillMsg msg ->
             {model|skills = SkillLogic.update msg model.skills}
 
@@ -86,14 +97,17 @@ updateModelBasedOnNewPriorities m model =
                     Nothing -> Magicality.Mundane
             else
                 model.magicality
-        newMagicAttr = 
+        (newMagicAttr,newMagicKAttr) = 
             if newMagicPriorityIdx>3 
+                || (newMagicality == Magicality.Mundane)
                 || (newMagicPriorityIdx==3 && (newMagicality/=Magicality.Adept && newMagicality/=Magicality.AspectedMagician))
                 || (newMagicPriorityIdx==0 && (newMagicality==Magicality.Adept || newMagicality==Magicality.AspectedMagician))
             then
-                Attributes.set Attributes.RES 0 <| Attributes.set Attributes.MAG 0 <| model.attributes
+                ( Attributes.set Attributes.RES 0 << Attributes.set Attributes.MAG 0 <| model.attributes
+                , Attributes.set Attributes.RES 0 << Attributes.set Attributes.MAG 0 <| model.karmaAttributes
+                )
             else
-                model.attributes
+                (model.attributes,model.karmaAttributes)
         newMagicSkills =
             if newMagicality/=model.magicality then
                 SkillLogic.magicChanged newMagicality (max (Attributes.get Attributes.MAG newMagicAttr) (Attributes.get Attributes.RES newMagicAttr))
@@ -105,6 +119,7 @@ updateModelBasedOnNewPriorities m model =
             , magicality = newMagicality
             , race = newRace
             , attributes = newMagicAttr
+            , karmaAttributes = newMagicKAttr
             , skills = newMagicSkills model.skills
             }
 
@@ -113,10 +128,20 @@ updateModelBasedOnNewMagicality newMagicality model =
     let
         newMagicAttr = 
             case newMagicality of
+                Magicality.Mundane ->
+                    (Attributes.set Attributes.MAG 0 >> Attributes.set Attributes.RES 0) model.attributes
                 Magicality.Technomancer ->
                     Attributes.set Attributes.MAG 0 model.attributes
                 _ ->
                     Attributes.set Attributes.RES 0 model.attributes
+        newMagicKAttr =
+            case newMagicality of
+                Magicality.Mundane ->
+                    (Attributes.set Attributes.MAG 0 >> Attributes.set Attributes.RES 0) model.karmaAttributes
+                Magicality.Technomancer ->
+                    Attributes.set Attributes.MAG 0 model.karmaAttributes
+                _ ->
+                    Attributes.set Attributes.RES 0 model.karmaAttributes
         newSkills =
             case newMagicality of 
                 Magicality.Technomancer ->
@@ -127,11 +152,13 @@ updateModelBasedOnNewMagicality newMagicality model =
         {model
                 | magicality = newMagicality
                 , attributes = newMagicAttr
+                , karmaAttributes = newMagicKAttr
                 , skills = newSkills
                 }
 
 type alias ViewCharacter =
     { name : String
+    , karma : Int
     , priorities : Priorities
     , prioritiesLocked : Bool
     , magicality : Magicality
@@ -141,6 +168,7 @@ type alias ViewCharacter =
     , racePriority : Int
     , baseAttributes : AttrObj
     , boughtAttributes : AttrObj
+    , karmaAttributes : AttrObj
     , maxAttributes : AttrObj
     , attributePointCount : Int
     , spAttributePointCount : Int
@@ -155,9 +183,13 @@ viewSelector chr =
         magicRating = Tuple.second <| Magicality.getBaseMagicality chr.magicality magicPriority
         raceBaseAttributes = Metatype.getBaseStats chr.race (chr.magicality,magicPriority)
         raceMaxAttributes = Metatype.getMaxStats chr.race (chr.magicality,magicPriority)
+        karma =
+            (chr.baseKarma)-
+            (Attributes.calculateKarma raceBaseAttributes chr.attributes chr.karmaAttributes)
     in
         ViewCharacter
             ( chr.name )
+            ( karma )
             ( chr.priorities )
             ( chr.prioritiesLocked )
             ( chr.magicality )
@@ -167,6 +199,7 @@ viewSelector chr =
             ( racePriority )
             ( raceBaseAttributes )
             ( chr.attributes )
+            ( chr.karmaAttributes )
             ( raceMaxAttributes )
             ( Attributes.getPriorityPointCount chr.priorities )
             ( Metatype.getSpecialPoints racePriority chr.race )
@@ -175,18 +208,24 @@ viewSelector chr =
 
 view : ViewCharacter -> Html Msg
 view model =
-    Html.div 
-        [ Html.Attributes.style
-            [("display","flex")
-            ,("flex-wrap","wrap")
-            ,("justify-content","space-around")]
-        ] 
-        [ viewPriorities model.prioritiesLocked model.magicality model.priorities
-        , viewMagicalityList model.magicPriority model.magicality
-        , viewMetatypeSelection model.priorities model.race
-        , Html.map AttrPoint <| AttributesView.view model.baseAttributes model.boughtAttributes model.maxAttributes model.attributePointCount model.spAttributePointCount
-        , Html.map SkillMsg <| SkillLogic.view model.priorities (Attributes.add model.baseAttributes model.boughtAttributes) model.magicality model.skills
+    Html.div [] 
+        [ Html.div [] 
+            [Html.text <| "Karma: "++(Basics.toString model.karma)]
+        , Html.div 
+            [ Html.Attributes.style
+                [("display","flex")
+                ,("flex-wrap","wrap")
+                ,("justify-content","space-between")]
+            ] 
+            (
+                [ viewPriorities model.prioritiesLocked model.magicality model.priorities
+                , viewMagicalityList model.magicPriority model.magicality
+                , viewMetatypeSelection model.priorities model.race
+                , AttributesView.view model.baseAttributes model.boughtAttributes model.karmaAttributes model.maxAttributes model.attributePointCount model.spAttributePointCount AttrPoint KAttrPoint
+                ] ++ ((List.map <| Html.map SkillMsg) <| SkillLogic.view model.priorities (Attributes.add model.baseAttributes model.boughtAttributes) model.magicality model.skills)
+            )
         ]
+
 
 viewPriorities : Bool -> Magicality -> Priorities -> Html Msg
 viewPriorities locked magicality priorities =

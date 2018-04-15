@@ -11,35 +11,36 @@ import Magicality exposing (Magicality)
 import Attributes exposing (Attribute(..), AttrObj)
 
 import Skills exposing (..)
-import SkillGroups
-
-type alias SkillEntry =
-    { skill : Skill
-    , pointsBought : Int
-    }
+import SkillGroups exposing (Group)
 
 type alias Model =
-    { groups : Dict String Int
-    , skills : List SkillEntry
+    { skills : Dict Skill Int
+    , groups : Dict Group Int
     , searchQuery : String
     , tableState : Table.State
+    , groupTableState : Table.State
     }
 
 default : Model
 default =
     Model
+        (all
+            |> List.map ((flip (,)) 0)
+            |> Dict.fromList
+        )
         (SkillGroups.getCompleteGroupList
             |> List.map ((flip (,)) 0) 
             |> Dict.fromList
         )
-        (List.map ((flip SkillEntry) 0) all)
         ("")
-        (Table.initialSort "Rating")
+        (Table.initialSort "Skill")
+        (Table.initialSort "Group")
 
 type Msg
     = SetQuery String
-    | SetTableState Table.State
+    | PointTableState Table.State
     | PointChange (PointBuy Skill)
+    | GroupPointTableState Table.State
     | GroupPointChange (PointBuy String)
 
 update : Msg -> Model -> Model
@@ -47,25 +48,16 @@ update msg model =
     case msg of
         SetQuery newQuery ->
             {model|searchQuery = newQuery}
-        SetTableState newState ->
+        PointTableState newState ->
             {model|tableState = newState}
         PointChange change ->
             {model|skills = changeSkillPoint change model.skills}
+        GroupPointTableState newState ->
+            {model|groupTableState = newState}
         GroupPointChange change ->
             {model|groups = changeGroupPoint change model.groups}
 
-magicChanged : Magicality -> Int -> Model -> Model
-magicChanged magicality priority model =
-    {model|skills = 
-        if priority>3 || magicality==Magicality.Mundane then
-            (zeroSkillByAttributes [Attributes.MAG,Attributes.RES] model.skills)
-        else if magicality == Magicality.Technomancer then
-            zeroSkillByAttribute Attributes.MAG model.skills
-        else 
-            zeroSkillByAttribute Attributes.RES model.skills
-    }
-
-changeGroupPoint : PointBuy String -> (Dict String Int -> Dict String Int)
+changeGroupPoint : PointBuy Group -> (Dict Group Int -> Dict Group Int)
 changeGroupPoint change =
     case change of
         Buy group ->
@@ -75,40 +67,59 @@ changeGroupPoint change =
         Set group val ->
             Dict.update group (Maybe.map (always val))
 
-changeSkillPoint : PointBuy Skill -> (List SkillEntry -> List SkillEntry)
+changeSkillPoint : PointBuy Skill -> (Dict Skill Int -> Dict Skill Int)
 changeSkillPoint change =
+    case change of
+        Buy skill ->
+            Dict.update skill (Maybe.map ((+) 1))
+        Sell skill ->
+            Dict.update skill (Maybe.map (\v -> if v>0 then v-1 else 0))
+        Set skill val ->
+            Dict.update skill (Maybe.map (always val))
+
+magicChanged : Magicality -> Int -> Model -> Model
+magicChanged mag i ({skills,groups} as model) =
     let
-        add1 skill s = if s.skill==skill then {s|pointsBought=s.pointsBought+1} else s
-        sub1 skill s = 
-            if s.skill==skill && s.pointsBought>0 then
-                {s|pointsBought=s.pointsBought-1}
+        zeroSkillByAttribute attr = 
+            getAttributeSkills attr
+                |> List.map (\s -> Dict.update s (Maybe.map (always 0)))
+                |> List.foldl (>>) identity
+        zeroSkillByAttributes attrs =
+            attrs
+                |> List.map zeroSkillByAttribute
+                |> List.foldl (>>) identity
+        zeroMagicGroups =
+            Dict.update "Conjuring" (Maybe.map (always 0))
+                >> Dict.update "Enchanting" (Maybe.map (always 0))
+                >> Dict.update "Sorcery" (Maybe.map (always 0))
+        zeroResGroups = 
+            Dict.update "Tasking" (Maybe.map (always 0))
+        newSkills = 
+            if i<1 then
+                zeroSkillByAttributes [Attributes.MAG,Attributes.RES] skills
             else
-                s
-        set skill val s = if s.skill==skill then {s|pointsBought=val} else s
+                case mag of
+                    Magicality.Mundane ->
+                        zeroSkillByAttributes [Attributes.MAG,Attributes.RES] skills
+                    Magicality.Technomancer ->
+                        zeroSkillByAttribute Attributes.MAG skills
+                    _ ->
+                        zeroSkillByAttribute Attributes.RES skills
+        newGroups =
+            if i<1 then
+                (zeroMagicGroups >> zeroResGroups) groups
+            else
+                case mag of
+                    Magicality.Mundane ->
+                        (zeroMagicGroups >> zeroResGroups) groups
+                    Magicality.Technomancer ->
+                        zeroMagicGroups groups
+                    _ ->
+                        zeroResGroups groups
     in
-        case change of
-            Buy skill ->
-                List.map <| add1 skill 
-            Sell skill ->
-                List.map <| sub1 skill
-            Set skill val ->
-                List.map <| set skill val
+        {model|skills=newSkills,groups=newGroups}
 
-zeroSkillByAttribute : Attribute -> List SkillEntry -> List SkillEntry
-zeroSkillByAttribute attr skills =
-    let
-        z s = if (getSkillAttribute s.skill) == attr then {s|pointsBought = 0} else s
-    in
-        List.map z skills
-
-zeroSkillByAttributes : List Attribute -> List SkillEntry -> List SkillEntry
-zeroSkillByAttributes attrs skills =
-    let
-        z s = if List.member (getSkillAttribute s.skill) attrs then {s|pointsBought = 0} else s
-    in
-        List.map z skills
-
-view : Priorities -> AttrObj -> Magicality -> Model -> Html Msg
+view : Priorities -> AttrObj -> Magicality -> Model -> List (Html Msg)
 view ps attrs magicality model = 
     model
         |> viewSelector ps attrs magicality
@@ -117,6 +128,7 @@ view ps attrs magicality model =
 type alias ViewSkillEntry =
     { skill : Skill
     , skillGroup : String
+    , groupVal : Int
     , pointsBought : Int
     , attr : Attribute
     , attrVal : Int
@@ -126,63 +138,115 @@ type alias ViewSkillEntry =
 type alias ViewModel =
     { attrs : AttrObj
     , allowedSkills : List ViewSkillEntry
+    , allowedGroups : List (String,Int)
     , skillPoints : Int
     , groupPoints : Int
     , searchQuery : String
     , tableState : Table.State
     , tableConfig : Table.Config ViewSkillEntry Msg
+    , groupTableState : Table.State
+    , groupTableConfig : Table.Config (Group,Int) Msg
     }
 
 
 viewSelector : Priorities -> AttrObj -> Magicality -> Model -> ViewModel
-viewSelector ps attrs magicality {skills,searchQuery,tableState} =
+viewSelector ps attrs magicality {skills,groups,searchQuery,tableState,groupTableState} =
     let
         (skillPoints,groupPoints) = getSkillAndGroupPointCount ps
-        skillEntryToSkillView {skill,pointsBought} =
+        skillEntryToSkillView (skill,pointsBought) =
             let
                 attr = getSkillAttribute skill
                 attrVal = Attributes.get attr attrs
                 group = Maybe.withDefault "" <| SkillGroups.getGroup skill
+                groupVal = Maybe.withDefault 0 <| Dict.get group groups
                 rating = 
-                    if (pointsBought > 0) then
-                        attrVal+pointsBought
+                    if (pointsBought+groupVal > 0) then
+                        attrVal+groupVal+pointsBought
                     else if (List.member skill canDefault) then
                         attrVal-1
                     else
                         0
             in
-                ViewSkillEntry skill group pointsBought attr attrVal rating
+                ViewSkillEntry skill group groupVal pointsBought attr attrVal rating
         viewSkillEntries = 
             skills
+                |> Dict.toList
                 |> List.map skillEntryToSkillView
+        groupData = 
+            Dict.toList groups 
+                |> List.filterMap
+                    ( case magicality of
+                        Magicality.Mundane ->
+                            (\val ->
+                                case Tuple.first val of 
+                                    "Conjuring" -> Nothing
+                                    "Enchanting" -> Nothing
+                                    "Sorcery" -> Nothing
+                                    "Tasking" -> Nothing
+                                    _ -> Just val
+                            )
+                        Magicality.Technomancer ->
+                            (\val ->
+                                case Tuple.first val of
+                                    "Conjuring" -> Nothing
+                                    "Enchanting" -> Nothing
+                                    "Sorcery" -> Nothing
+                                    _ -> Just val
+                            )
+                        _ ->
+                            (\val ->
+                                case Tuple.first val of 
+                                    "Tasking" -> Nothing
+                                    _ -> Just val
+                            )
+                    )
     in
         ViewModel
             ( attrs )
             ( viewSkillEntries )
+            ( groupData )
             ( skillPoints )
             ( groupPoints )
             ( searchQuery )
             ( tableState )
             ( Table.config 
                 { toId = .skill>>Basics.toString
-                , toMsg = SetTableState
+                , toMsg = PointTableState
                 , columns =
-                    [ Table.stringColumn "Skill" (.skill>>Basics.toString)
-                    , Table.stringColumn "Group" (.skillGroup)
+                    [ Table.stringColumn "Skill" (.skill)
                     , Table.stringColumn "Attribute" (.attr>>Basics.toString)
-                    , Table.intColumn "Rating" (.rating)
+                    , Table.stringColumn "Group" (\s -> s.skillGroup ++ " " ++ (if s.groupVal>0 then Basics.toString s.groupVal else ""))
                     , pointSpendColumn
+                    , Table.intColumn "Rating" (.rating)
+                    ]
+                }
+            )
+            ( groupTableState )
+            ( Table.config 
+                { toId = (Tuple.first)
+                , toMsg = GroupPointTableState
+                , columns =
+                    [ Table.stringColumn "Group" (Tuple.first)
+                    , groupPointColumn
                     ]
                 }
             )
 
 
-realView : ViewModel -> Html Msg
+realView : ViewModel -> List (Html Msg)
 realView model = 
-    Html.details []
+    [ Html.details []
+        [ Html.summary [] [Html.text "Groups"]
+        , Html.div [] [Html.text ("Skill Group Points "++(toString (model.groupPoints - (List.sum (List.map Tuple.second model.allowedGroups)))))]
+        , Table.view model.groupTableConfig model.groupTableState model.allowedGroups
+        ]
+    , Html.details []
         [ Html.summary [] [Html.text "Skills"]
+        , Html.div [] [Html.text ("Skill Points "++(toString (model.skillPoints - (List.sum (List.map .pointsBought model.allowedSkills)))))]
         , Table.view model.tableConfig model.tableState model.allowedSkills
         ]
+    ]
+    
 
 pointSpendColumn : Table.Column ViewSkillEntry Msg
 pointSpendColumn = 
@@ -198,4 +262,20 @@ pointSpendColumn =
                 }
             )
         , sorter = Table.increasingOrDecreasingBy .pointsBought
+        }
+
+groupPointColumn : Table.Column (Group, Int) Msg
+groupPointColumn =
+    Table.veryCustomColumn
+        { name = "Points"
+        , viewData = 
+            (\(groupStr, val) ->
+                { attributes = []
+                , children = 
+                    val
+                        |> PointBuy.buyInterface groupStr 
+                        |> List.map (Html.map GroupPointChange)
+                }
+            )
+        , sorter = Table.increasingOrDecreasingBy Tuple.second
         }

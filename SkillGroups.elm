@@ -1,116 +1,118 @@
 module SkillGroups exposing (..)
 
 import Magicality exposing (Magicality)
-import Skills exposing (Skill(..))
+import Skills exposing (Skill)
+
+type alias Group = String
 
 acting : List Skill
 acting = 
-    [ Con
-    , Impersonation
-    , Performance
+    [ "Con"
+    , "Impersonation"
+    , "Performance"
     ]
 
 athletics : List Skill
 athletics = 
-    [ Gymnastics
-    , Running
-    , Swimming
+    [ "Gymnastics"
+    , "Running"
+    , "Swimming"
     ]
 
 biotech : List Skill
 biotech = 
-    [ Biotechnology
-    , Cybertechnology
-    , FirstAid
-    , Medicine
+    [ "Biotechnology"
+    , "Cybertechnology"
+    , "FirstAid"
+    , "Medicine"
     ]
 
 closeCombat : List Skill
 closeCombat = 
-    [ Blades
-    , Clubs
-    , UnarmedCombat
+    [ "Blades"
+    , "Clubs"
+    , "UnarmedCombat"
     ]
 
 conjuring : List Skill
 conjuring = 
-    [ Banishing
-    , Binding
-    , Summoning
+    [ "Banishing"
+    , "Binding"
+    , "Summoning"
     ]
 
 cracking : List Skill
 cracking =
-    [ Cybercombat
-    , ElectronicWarfare
-    , Hacking
+    [ "Cybercombat"
+    , "ElectronicWarfare"
+    , "Hacking"
     ]
 
 electronics : List Skill
 electronics =
-    [ Computer
-    , Hardware
-    , Software
+    [ "Computer"
+    , "Hardware"
+    , "Software"
     ]
 
 enchanting : List Skill
 enchanting =
-    [ Alchemy
-    , Artificing
-    , Disenchanting
+    [ "Alchemy"
+    , "Artificing"
+    , "Disenchanting"
     ]
 
 engineering : List Skill
 engineering = 
-    [ AeronauticMechanic
-    , AutomotiveMechanic
-    , IndustrialMechanic
-    , NauticalMechanic
+    [ "AeronauticMechanic"
+    , "AutomotiveMechanic"
+    , "IndustrialMechanic"
+    , "NauticalMechanic"
     ]
 
 firearms : List Skill
 firearms =
-    [ Automatics
-    , Longarms
-    , Pistols
+    [ "Automatics"
+    , "Longarms"
+    , "Pistols"
     ]
 
 influence : List Skill
 influence =
-    [ Etiquette
-    , Leadership
-    , Negotiation
+    [ "Etiquette"
+    , "Leadership"
+    , "Negotiation"
     ]
 
 outdoors : List Skill
 outdoors =
-    [ Navigation
-    , Survival
-    , Tracking
+    [ "Navigation"
+    , "Survival"
+    , "Tracking"
     ]
 
 sorcery : List Skill
 sorcery =
-    [ Counterspelling
-    , RitualSpellcasting
-    , Spellcasting
+    [ "Counterspelling"
+    , "RitualSpellcasting"
+    , "Spellcasting"
     ]
 
 stealth : List Skill
 stealth =
-    [ Disguise
-    , Palming
-    , Sneaking
+    [ "Disguise"
+    , "Palming"
+    , "Sneaking"
     ]
 
 tasking : List Skill
 tasking =
-    [ Compiling
-    , Decompiling
-    , Registering
+    [ "Compiling"
+    , "Decompiling"
+    , "Registering"
     ]
 
-getGroup : Skill -> Maybe String
+getGroup : Skill -> Maybe Group
 getGroup skill =
          if List.member skill acting then
         Just "Acting"
@@ -145,7 +147,7 @@ getGroup skill =
     else 
         Nothing
 
-getGroupSkillList : String -> List Skill
+getGroupSkillList : Group -> List Skill
 getGroupSkillList group =
     case group of
         "Acting" -> 
@@ -181,7 +183,7 @@ getGroupSkillList group =
         _ -> 
             []
 
-getCompleteGroupList : List String
+getCompleteGroupList : List Group
 getCompleteGroupList =
     [ "Acting"
     , "Athletics"
@@ -201,7 +203,7 @@ getCompleteGroupList =
     ]
     
 
-getGroupList : Magicality -> List String
+getGroupList : Magicality -> List Group
 getGroupList magicality =
     [ "Acting"
     , "Athletics"
