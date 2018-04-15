@@ -6,7 +6,6 @@ import Html.Attributes
 import HtmlInputs
 
 import ReorderableList
-import PointBuy
 import Priorities exposing (Priorities)
 import Magicality exposing (Magicality(..))
 import Metatype exposing (Metatype(..))
