@@ -93,7 +93,7 @@ magicChanged mag i ({skills,groups} as model) =
                 >> Dict.update "Enchanting" (Maybe.map (always 0))
                 >> Dict.update "Sorcery" (Maybe.map (always 0))
         zeroResGroups = 
-            Dict.update "Tasking" (Maybe.map (always 0))
+            Dict.update "Tasking" (Maybe.map (always -1))
         newSkills = 
             if i<1 then
                 zeroSkillByAttributes [Attributes.MAG,Attributes.RES] skills
@@ -217,7 +217,7 @@ viewSelector ps attrs magicality {skills,groups,searchQuery,skillTableState,grou
                     , Table.stringColumn "Attribute" (.attr>>Basics.toString)
                     , Table.stringColumn "Group" (\s -> s.skillGroup ++ " " ++ (if s.groupVal>0 then Basics.toString s.groupVal else ""))
                     , pointSpendColumn
-                    , Table.intColumn "Rating" (.rating)
+                    , Table.stringColumn "Rating" (.rating>>(\r -> if (r > -1) then toString r else "Unaware"))
                     ]
                 }
         , groupTableState = groupTableState
