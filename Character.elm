@@ -6,7 +6,7 @@ import Html.Attributes
 import HtmlInputs
 
 import ReorderableList
-import PointBuy exposing (PointBuy(..))
+import PointBuy
 import Priorities exposing (Priorities)
 import Magicality exposing (Magicality(..))
 import Metatype exposing (Metatype(..))
@@ -31,8 +31,8 @@ type Msg
     | TogglePriorityLock
     | ChangeMagicality Magicality
     | ChangeRace Metatype
-    | AttrPoint (PointBuy Attribute)
-    | KAttrPoint (PointBuy Attribute)
+    | AttrPoint (Attribute,Int)
+    | KAttrPoint (Attribute,Int)
     | SkillMsg SkillLogic.Msg
 
 default : Character
@@ -65,17 +65,9 @@ update msg model =
             updateModelBasedOnNewMagicality new model
         ChangeRace new ->
             {model|race = new}
-        AttrPoint (Buy attr) ->
-            {model|attributes = Attributes.increase attr model.attributes}
-        AttrPoint (Sell attr) ->
-            {model|attributes = Attributes.decrease attr model.attributes}
-        AttrPoint (Set attr val) ->
+        AttrPoint (attr,val) ->
             {model|attributes = Attributes.set attr val model.attributes}
-        KAttrPoint (Buy attr) ->
-            {model|karmaAttributes = Attributes.increase attr model.karmaAttributes}
-        KAttrPoint (Sell attr) ->
-            {model|karmaAttributes = Attributes.decrease attr model.karmaAttributes}
-        KAttrPoint (Set attr val) ->
+        KAttrPoint (attr,val) ->
             {model|karmaAttributes = Attributes.set attr val model.karmaAttributes}
         SkillMsg msg ->
             {model|skills = SkillLogic.update msg model.skills}

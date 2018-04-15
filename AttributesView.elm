@@ -6,10 +6,10 @@ import Html.Attributes
 import Dict exposing (Dict)
 import List.Extra
 
-import PointBuy exposing (PointBuy(..))
+import PointBuy
 import Attributes exposing (..)
 
-view : AttrObj -> AttrObj -> AttrObj -> AttrObj-> Int -> Int -> (PointBuy Attribute -> msg) -> (PointBuy Attribute -> msg) -> Html msg
+view : AttrObj -> AttrObj -> AttrObj -> AttrObj-> Int -> Int -> ((Attribute,Int) -> msg) -> ((Attribute,Int) -> msg) -> Html msg
 view bases bought karmas maxes availableAttributePoints availableSpecialPoints pointTagger karmaPointTagger =
     ( List.map4 
         (\(a1,c) (a2, s) (a3,k) (a4,m) ->
@@ -60,7 +60,7 @@ view bases bought karmas maxes availableAttributePoints availableSpecialPoints p
         |> Html.details []
 
 
-viewAttribute : (Attribute, Int, Int, Int, Int) -> (PointBuy Attribute -> msg) -> (PointBuy Attribute -> msg) -> Html msg
+viewAttribute : (Attribute, Int, Int, Int, Int) -> ((Attribute,Int) -> msg) -> ((Attribute,Int) -> msg) -> Html msg
 viewAttribute (attr,base,bought,karmaPoints,maxVal) pointTagger karmaPointTagger =
     let
         current = if maxVal>0 then base+bought+karmaPoints else 0
@@ -80,10 +80,10 @@ viewAttribute (attr,base,bought,karmaPoints,maxVal) pointTagger karmaPointTagger
             , Html.td [] [maxVal |> Basics.toString |> Html.text]
             , Html.map pointTagger 
                 <| Html.td [] 
-                    (PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then bought else 0))
+                    [PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then bought else 0)]
             , Html.map karmaPointTagger 
                 <| Html.td []
-                    (PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then karmaPoints else 0))
+                    [PointBuy.buyInterfaceWithDisable (maxVal<1) attr (if maxVal>0 then karmaPoints else 0)]
             , Html.td [] 
                 [ Html.text <|
                     if karmaPoints < 1 then 

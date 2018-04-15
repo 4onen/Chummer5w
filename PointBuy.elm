@@ -4,31 +4,18 @@ import Html exposing (Html)
 import Html.Events
 import Html.Attributes
 
-type PointBuy a 
-    = Buy a
-    | Sell a
-    | Set a Int
-
-buyInterface : tag -> number -> List (Html (PointBuy tag))
+buyInterface : tag -> number -> Html (tag,Int)
 buyInterface = buyInterfaceWithDisable False
 
-buyInterfaceWithDisable : Bool -> tag -> number -> List (Html (PointBuy tag))
+buyInterfaceWithDisable : Bool -> tag -> number -> Html (tag,Int)
 buyInterfaceWithDisable disabled tag val =
-    [ Html.input 
-        [ Html.Attributes.type_ "text" 
+    Html.input 
+        [ Html.Attributes.type_ "number"
         , Html.Attributes.value <| toString val
+        , Html.Attributes.disabled disabled
+        , Html.Attributes.min "0"
         , Html.Attributes.size 1
-        , Html.Attributes.disabled disabled
-        , Html.Events.onInput (String.toInt>>(Result.withDefault 0)>>(Set tag))
+        , Html.Events.onInput (String.toInt>>(Result.withDefault 0)>>((,) tag))
+        , Html.Attributes.style 
+            [("width","3em")]
         ] []
-    , Html.button 
-        [ Html.Events.onClick <| Buy tag
-        , Html.Attributes.disabled disabled
-        ]
-        [ Html.text "+"]
-    , Html.button 
-        [ Html.Events.onClick <| Sell tag
-        , Html.Attributes.disabled disabled
-        ] 
-        [ Html.text "-"]
-    ]

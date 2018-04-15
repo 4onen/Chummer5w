@@ -5,7 +5,7 @@ import Html exposing (Html)
 
 import Table
 
-import PointBuy exposing (PointBuy(..))
+import PointBuy
 import Priorities exposing (Priorities)
 import Magicality exposing (Magicality)
 import Attributes exposing (Attribute(..), AttrObj)
@@ -39,9 +39,9 @@ default =
 type Msg
     = SetQuery String
     | PointTableState Table.State
-    | PointChange (PointBuy Skill)
+    | PointChange (Group,Int)
     | GroupPointTableState Table.State
-    | GroupPointChange (PointBuy String)
+    | GroupPointChange (Group,Int)
 
 update : Msg -> Model -> Model
 update msg model =
@@ -57,25 +57,13 @@ update msg model =
         GroupPointTableState newState ->
             {model|groupTableState = newState}
 
-changeGroupPoint : PointBuy Group -> (Dict Group Int -> Dict Group Int)
-changeGroupPoint change =
-    case change of
-        Buy group ->
-            Dict.update group (Maybe.map ((+) 1))
-        Sell group ->
-            Dict.update group (Maybe.map (\v -> if v>0 then v-1 else 0))
-        Set group val ->
-            Dict.update group (Maybe.map (always val))
+changeGroupPoint : (Group,Int) -> (Dict Group Int -> Dict Group Int)
+changeGroupPoint (group,val) =
+    Dict.update group (Maybe.map (always val))
 
-changeSkillPoint : PointBuy Skill -> (Dict Skill Int -> Dict Skill Int)
-changeSkillPoint change =
-    case change of
-        Buy skill ->
-            Dict.update skill (Maybe.map ((+) 1))
-        Sell skill ->
-            Dict.update skill (Maybe.map (\v -> if v>0 then v-1 else 0))
-        Set skill val ->
-            Dict.update skill (Maybe.map (always val))
+changeSkillPoint : (Skill,Int) -> (Dict Skill Int -> Dict Skill Int)
+changeSkillPoint (skill,val) =
+    Dict.update skill (Maybe.map (always val))
 
 magicChanged : Magicality -> Int -> Model -> Model
 magicChanged mag i ({skills,groups} as model) =
@@ -257,7 +245,8 @@ pointSpendColumn =
                 , children = 
                     data.pointsBought
                         |> PointBuy.buyInterfaceWithDisable (data.attrVal<1) data.skill
-                        |> List.map (Html.map PointChange)
+                        |> Html.map PointChange
+                        |> List.singleton
                 }
             )
         , sorter = Table.increasingOrDecreasingBy .pointsBought
@@ -273,7 +262,8 @@ groupPointColumn =
                 , children = 
                     val
                         |> PointBuy.buyInterface groupStr 
-                        |> List.map (Html.map GroupPointChange)
+                        |> Html.map GroupPointChange
+                        |> List.singleton
                 }
             )
         , sorter = Table.increasingOrDecreasingBy Tuple.second
