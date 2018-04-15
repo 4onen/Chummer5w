@@ -11,6 +11,25 @@ import Attributes exposing (..)
 
 view : AttrObj -> AttrObj -> AttrObj -> AttrObj-> Int -> Int -> ((Attribute,Int) -> msg) -> ((Attribute,Int) -> msg) -> Html msg
 view bases bought karmas maxes availableAttributePoints availableSpecialPoints pointTagger karmaPointTagger =
+    Html.details []
+        [ Html.summary [] [Html.text "Attributes"]
+        , Html.table []
+            [ Html.thead [] 
+                [ Html.th [] []
+                , Html.th [] [Html.text "Attribute"]
+                , Html.th [] []
+                , Html.th [] []
+                , Html.th [] []
+                , Html.th [] [Html.text "Points"]
+                , Html.th [] [Html.text "Karma"]
+                ]
+            , viewtbody bases bought karmas maxes availableAttributePoints availableSpecialPoints pointTagger karmaPointTagger
+            ]
+        ]
+
+
+viewtbody : AttrObj -> AttrObj -> AttrObj -> AttrObj-> Int -> Int -> ((Attribute,Int) -> msg) -> ((Attribute,Int) -> msg) -> Html msg
+viewtbody bases bought karmas maxes availableAttributePoints availableSpecialPoints pointTagger karmaPointTagger =
     ( List.map4 
         (\(a1,c) (a2, s) (a3,k) (a4,m) ->
             if a1==a2 && a2 == a3 && a3==a4 then
@@ -54,10 +73,7 @@ view bases bought karmas maxes availableAttributePoints availableSpecialPoints p
             in
                 simpleViews++(simplePointDisplay::specialViews++[specialPointDisplay])
             )
-        |> Html.table []
-        |> List.singleton
-        |> (::) (Html.summary [] [Html.text "Attributes"])
-        |> Html.details []
+        |> Html.tbody []
 
 
 viewAttribute : (Attribute, Int, Int, Int, Int) -> ((Attribute,Int) -> msg) -> ((Attribute,Int) -> msg) -> Html msg

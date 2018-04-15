@@ -202,7 +202,7 @@ viewSelector ps attrs magicality {skills,groups,searchQuery,skillTableState,grou
                 , toMsg = PointTableState
                 , columns =
                     [ Table.stringColumn "Skill" (.skill)
-                    , Table.stringColumn "Attribute" (.attr>>Basics.toString)
+                    , Table.stringColumn "Attrib." (.attr>>Basics.toString)
                     , Table.stringColumn "Group" (\s -> s.skillGroup ++ " " ++ (if s.groupVal>0 then Basics.toString s.groupVal else ""))
                     , pointSpendColumn
                     , Table.stringColumn "Rating" (.rating>>(\r -> if (r > -1) then toString r else "Unaware"))
