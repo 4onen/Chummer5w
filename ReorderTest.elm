@@ -23,6 +23,7 @@ type alias Model =
     , extra : Bool
     }
 
+init : (Model, Cmd Msg)
 init = 
     ( Model 
         ReorderableList.init
@@ -37,6 +38,7 @@ type Msg
     | ToggleExtraElement Time.Time
     | ToggleToggleExtraElement
 
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         RLMsg m ->
@@ -55,7 +57,8 @@ update msg model =
         ToggleToggleExtraElement ->
             {model | extra = not model.extra} ! []
 
- 
+
+subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         ( [ (Sub.map RLMsg <| ReorderableList.subscriptions model.rl)
@@ -67,6 +70,8 @@ subscriptions model =
           )
         )
 
+
+view : Model -> Html Msg
 view {rl,list,reorder,extra} =
     Html.div [] 
         [ Html.button [Html.Events.onClick ToggleReorderEnabled] [Html.text (if reorder then "Disable Drag" else "Drag")]
