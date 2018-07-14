@@ -6,9 +6,8 @@ import Html.Events
 import Json.Decode
 import Mouse
 
-type alias Model val =
-    { data : List val
-    , drag : Maybe Drag
+type alias Model =
+    { drag : Maybe Drag
     }
 
 type alias Drag =
@@ -21,54 +20,35 @@ type alias Options val msg =
     { enable : Bool
     , rowTagFunc : Maybe (Index -> Html msg)
     , labelFunc : Maybe (Index -> val -> Html msg)
-    , updownButtons : Maybe (Index -> val -> Bool -> Html msg)
     }
 
 type alias Index = Int
 
-init : Model val
-init = fromList []
-
-fromList : List val -> Model val
-fromList input =
-    {data = input, drag = Nothing}
-
-toList : Model val -> List val
-toList model =
-    let
-        safeModel = 
-            case model.drag of
-                Just d ->
-                    updateDragEnd d.currentY model
-                Nothing ->
-                    model
-    in
-        safeModel.data
+init : Model
+init = Model Nothing
 
 type Msg 
     = DragStart Index Int
     | DragAt Int
     | DragEnd Int
-    | RaiseItem Int
-    | LowerItem Int
+    | KillDrag
 
-updateList : (List val -> List val) -> Model val -> Model val
-updateList func model =
-    {model | drag = Nothing, data = func model.data}
-
-update : Msg -> Model val -> Model val
-update msg model =
+update : Msg -> Model -> List val -> (Model, List val)
+update msg model list =
     case msg of
         DragStart idx y ->
-            {model | drag = Just (Drag idx y y)}
+            ({model | drag = Just (Drag idx y y)}, list)
         DragAt y ->
-            {model | drag = Maybe.map (updateDragAt y) model.drag}
+            ({model | drag = Maybe.map (updateDragAt y) model.drag}, list)
         DragEnd y ->
-            (updateDragEnd y model)
-        RaiseItem idx ->
-            {model | data = moveItem idx -1 model.data}
-        LowerItem idx ->
-            {model | data = moveItem idx 1 model.data}
+            (updateDragEnd y model list)
+        KillDrag ->
+            ({model | drag = Nothing}, list)
+
+
+killDrag : Model -> Model
+killDrag =
+    Tuple.first << ((flip (update KillDrag)) [])
 
 
 updateDragAt : Int -> Drag -> Drag
@@ -76,14 +56,14 @@ updateDragAt y drag =
     {drag|currentY = y}
 
 
-updateDragEnd : Int -> Model val -> Model val
-updateDragEnd y model =
+updateDragEnd : Int -> Model -> List val -> (Model,List val)
+updateDragEnd y model list =
     case model.drag of
         Just d ->
-            { model | data = moveItem d.idx ((d.currentY - d.startY + (if d.currentY < d.startY then -conservativeHalfHeight else conservativeHalfHeight))//elementHeight) model.data
-            , drag = Nothing }
+            ( { model | drag = Nothing }
+            , moveItem d.idx ((d.currentY - d.startY + (if d.currentY < d.startY then -conservativeHalfHeight else conservativeHalfHeight))//elementHeight) list)
         Nothing ->
-            model
+            ( model, list )
 
 
 moveItem : Index -> Index -> List a -> List a
@@ -97,15 +77,15 @@ moveItem from by oldList =
             ++ (List.drop (from + by) listWithoutMoved)
 
 
-subscriptions : Model val -> Sub Msg
+subscriptions : Model -> Sub Msg
 subscriptions {drag} =
     case drag of
         Just _ -> Sub.batch [Mouse.moves (.y>>DragAt), Mouse.ups (.y>>DragEnd)]
         Nothing -> Sub.none
 
 
-viewWithOptions : (Msg -> msg) -> Options val msg -> Model val -> Html msg
-viewWithOptions msg opts model =
+viewWithOptions : (Msg -> msg) -> Options val msg -> Model -> List val -> Html msg
+viewWithOptions msg opts model list =
     Html.table 
         [ Html.Attributes.style 
             [ ("margin","0")
@@ -114,11 +94,11 @@ viewWithOptions msg opts model =
             , ("vertical-align","middle")
             ]
         ]
-        (List.indexedMap (itemView msg opts model) model.data)
+        (List.indexedMap (itemView msg opts model) list)
 
 
-itemView : (Msg -> msg) -> Options val msg -> Model val -> Index -> val -> Html msg
-itemView msg opts {data,drag} myIdx item =
+itemView : (Msg -> msg) -> Options val msg -> Model -> Index -> val -> Html msg
+itemView msg opts {drag} myIdx item =
     let
         buttonStyle = 
             if opts.enable then 
@@ -126,17 +106,19 @@ itemView msg opts {data,drag} myIdx item =
             else 
                 [("display","none")]
         moveStyle = 
-            case drag of
-                Just d ->
-                    if d.idx == myIdx then
-                        [ ("transform","translateY("++toString (d.currentY-d.startY)++"px) translateZ(10px)")
-                        , ("box-shadow","0 3px 6px rgba(0,0,0,0.24)")
-                        , ("will-change","transform")
-                        ]
-                    else
-                        []
-                Nothing ->
-                    []
+            drag
+                |> Maybe.andThen
+                    (\d -> 
+                        if d.idx == myIdx then
+                            Just 
+                                [ ("transform","translateY("++toString (d.currentY-d.startY)++"px) translateZ(10px)")
+                                , ("box-shadow","0 3px 6px rgba(0,0,0,0.24)")
+                                , ("will-change","transform")
+                                ]
+                        else
+                            Nothing
+                    )
+                |> Maybe.withDefault []
         makingWayStyle =
             case drag of
                 Just d ->
@@ -172,28 +154,9 @@ itemView msg opts {data,drag} myIdx item =
                     f myIdx item
                 Nothing ->
                     Html.text (toString item)
-        updownButtons = 
-            case opts.updownButtons of
-                Just f ->
-                    [ Html.button 
-                        [ Html.Attributes.style buttonStyle
-                        , Html.Attributes.disabled (myIdx==0)
-                        , Html.Events.onClick <| msg (RaiseItem myIdx)
-                        ] 
-                        [f myIdx item True]
-                    , Html.button 
-                        [ Html.Attributes.style buttonStyle
-                        , Html.Attributes.disabled (myIdx==(List.length data)-1)
-                        , Html.Events.onClick <| msg (LowerItem myIdx)
-                        ] 
-                        [f myIdx item False]
-                    ]
-                Nothing -> 
-                    []
     in
         Html.tr [] 
             [ Html.td [] [rowTag]
-            , Html.td [] updownButtons
             , Html.td
                 [ Html.Attributes.style <| makingWayStyle ++ moveStyle ++ changingStyle ++ constantStyle]
                 [ Html.button 
@@ -209,8 +172,8 @@ itemView msg opts {data,drag} myIdx item =
 
 
 
-view : Model val -> Html Msg
-view = viewWithOptions identity (Options True Nothing Nothing Nothing)
+view : Model -> List val -> Html Msg
+view = viewWithOptions identity (Options True Nothing Nothing)
 
 elementHeight : Int
 elementHeight = 50

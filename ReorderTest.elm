@@ -2,6 +2,8 @@ module ReorderTest exposing (main)
 
 import Html exposing (Html)
 import Html.Events
+import Time
+import Char
 
 import ReorderableList
 
@@ -14,48 +16,70 @@ main =
         , subscriptions = subscriptions
         }
 
-type alias Model = { rl : ReorderableList.Model String, reorder : Bool }
+type alias Model = 
+    { rl : ReorderableList.Model
+    , list : List String
+    , reorder : Bool
+    , extra : Bool
+    }
 
 init = 
     ( Model 
-        (ReorderableList.fromList ["Alpha","Beta","Tomato","Delta","Grammar","Hardy"])
+        ReorderableList.init
+        ["Alpha","Beta","Tomato","Delta","Grammar","Hardy"]
         True
+        False
     ) ! []
 
 type Msg
     = RLMsg ReorderableList.Msg
     | ToggleReorderEnabled
+    | ToggleExtraElement Time.Time
+    | ToggleToggleExtraElement
 
 update msg model =
     case msg of
         RLMsg m ->
-            {model | rl=ReorderableList.update m model.rl} ! []
+            let
+                (newRl,newList) = ReorderableList.update m model.rl model.list
+            in
+                {model | rl=newRl, list = newList} ! []
         ToggleReorderEnabled ->
             {model | reorder = not model.reorder} ! []
+        ToggleExtraElement _ ->
+            case model.list of
+                "Zeta"::rest ->
+                    {model|list=rest,rl=ReorderableList.killDrag model.rl} ! []
+                rest ->
+                    {model|list="Zeta"::rest,rl=ReorderableList.killDrag model.rl} ! []
+        ToggleToggleExtraElement ->
+            {model | extra = not model.extra} ! []
+
  
 subscriptions model =
-    Sub.map RLMsg <| ReorderableList.subscriptions model.rl
+    Sub.batch
+        ( [ (Sub.map RLMsg <| ReorderableList.subscriptions model.rl)
+          ] ++ (
+            if model.extra then
+                List.singleton <| Time.every Time.second ToggleExtraElement
+            else
+                []
+          )
+        )
 
-view {rl,reorder} =
+view {rl,list,reorder,extra} =
     Html.div [] 
         [ Html.button [Html.Events.onClick ToggleReorderEnabled] [Html.text (if reorder then "Disable Drag" else "Drag")]
-        , ReorderableList.viewWithOptions RLMsg (ReorderableList.Options reorder (Just viewListTag) (Just (\i v -> Html.text v)) (Just viewRaiseLowerButton)) rl
+        , Html.button [Html.Events.onClick ToggleToggleExtraElement] [Html.text (if extra then "Disable Extra" else "Extra! Extra!")]
+        , ReorderableList.viewWithOptions RLMsg (ReorderableList.Options reorder (Just viewListTag) (Just (\i v -> Html.text v))) rl list
         ]
 
 viewListTag : Int -> Html Msg
 viewListTag idx =
-    ( case idx of
-        0 -> "A"
-        1 -> "B"
-        2 -> "C"
-        3 -> "D"
-        4 -> "E"
-        _ -> "ERR"
-    ) |> Html.text
-
-viewRaiseLowerButton : Int -> a -> Bool -> Html Msg
-viewRaiseLowerButton _ _ up =
-    if up then
-        Html.text "^"
-    else
-        Html.text "v"
+    'A'
+        |> Char.toCode
+        |> (+) idx
+        |> Char.fromCode
+        |> List.singleton
+        |> String.fromList
+        |> Html.text
