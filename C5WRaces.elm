@@ -1,13 +1,19 @@
-module C5WCharAttributes exposing (..)
+module C5WRaces exposing (..)
 
 import Dict exposing (Dict)
 
-type alias Attributes =
-    { base : BaseAttributes
-    , special : SpecAttributes
-    , baseKarma : BaseAttributes
-    , specialKarma : SpecAttributes
+type alias Race =
+    { name : String 
+    , karmaCost : Int
+    , source : String
+    , sourcePage : Int
+    , baseAttributes : BaseAttributes
+    , specAttributes : SpecAttributes
     }
+
+jsonNames = ["metatypes.xml"]
+
+xmlNames = ["metatypes.xml"]
 
 baseAttributesNames = ["bod","agi","rea","str","cha","int","log","wil"]
 
@@ -27,14 +33,7 @@ type alias BaseAttributes = Dict String (Int,Int)
 type alias SpecAttributes = Dict String (Int,Int)
     {-- edg : Int
     , ess : Float
-    , magres : Int
+    , mag : Int
+    , res : Int
     --}
 
-{--calcKarmaUse : Attributes -> Int
-calcKarmaUse attrs =
-    let
-        baseKarmaUse =
-            attrs.base
-                |> 
-    in--}
-        
