@@ -56,8 +56,8 @@ view model =
                         |> List.map 
                             (\err -> 
                                 lines
-                                    |> List.drop (err.row-8)
-                                    |> List.take 16
+                                    |> List.drop (err.row-1)
+                                    |> List.take 1
                                     |> List.map (\l -> Html.p [] [Html.text l])
                                     |> (::) (Html.p [] [Html.text <| Debug.toString err])
                             )

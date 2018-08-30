@@ -5,21 +5,18 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 
 type XmlTag
-    = Xmls (Dict String (List XmlTag))
+    = SubTags (Dict String (List XmlTag))
+    | PresenceTag
     | XmlInt Int
     | XmlFloat Float
     | XmlString String
-    | XmlTag
 
 xmlFile : Parser XmlTag
 xmlFile =
     succeed identity
         |. Parser.symbol "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
         |. spaces
-        |. Parser.oneOf 
-            [ xmlComment
-            , succeed ()
-            ]
+        |. possibleComments
         |. spaces
         |= (xmlTag |> Parser.map Tuple.second)
         |. spaces
@@ -27,99 +24,97 @@ xmlFile =
 
 xmlTag : Parser (String,XmlTag)
 xmlTag =
-    Parser.oneOf
-        [ xmlInt
-        , xmlFloat
-        ,   ( succeed identity
-                |. symbol "<"
-                |= Parser.getChompedString (Parser.chompIf Char.isAlpha)
-                |. Parser.chompUntil ">"
-                |. symbol ">"
+    succeed identity
+        |. symbol "<"
+        |= Parser.oneOf 
+            [ succeed (\s -> ("comment",XmlString s))
+                |. symbol "!--"
+                |= Parser.getChompedString 
+                    (Parser.chompUntil "-->")
+                |. symbol "-->"
+            , (succeed identity
+                |= Parser.getChompedString (Parser.chompWhile Char.isAlpha)
                 |. spaces
-            ) |> andThen 
-            (\s -> 
-                (xmlTagContent s) 
-                    |> Parser.map 
-                        (\l -> 
-                            l
-                                |> List.foldl
-                                    (\(s1,x1)->
-                                        Dict.update s1
-                                            (\m ->
-                                                case m of
-                                                    Just x2 ->
-                                                        Just (x1::x2)
-                                                    Nothing ->
-                                                        Just [x1]
-                                            )
-                                    ) Dict.empty
-                                |> (\d -> (s,Xmls d))
-                        )
-            )
-        , xmlString
-        , succeed (\s -> (s,XmlTag))
-            |. symbol "<"
-            |= Parser.getChompedString (Parser.chompIf Char.isAlpha)
-            |. symbol " />"
-        ]
-        |. spaces
+                |. discardAttributeList)
+                |> andThen 
+                    (\s -> 
+                        Parser.oneOf
+                            [ succeed (s,PresenceTag)
+                                |. symbol "/>"
+                            , succeed (\x -> (s, x))
+                                |. symbol ">"
+                                |. spaces
+                                |= xmlTagContents
+                                |. symbol ("</"++s++">")
+                            ]
+                            |. spaces
+                    )
+            ]
 
-xmlTagContent : String -> Parser (List (String, XmlTag))
-xmlTagContent s =
-    Parser.loop [] 
-        (\l ->
-            Parser.oneOf
-                [ succeed (Parser.Done l)
-                    |. symbol ("</"++s++">")
-                , succeed (\x -> Parser.Loop (x::l))
+xmlTagContents : Parser XmlTag
+xmlTagContents =
+    Parser.loop Dict.empty
+        (\d ->
+            Parser.oneOf 
+                [ succeed (\x -> Parser.Done d)
+                    |= Parser.number
+                        { int = Just XmlInt
+                        , hex = Nothing
+                        , octal = Nothing
+                        , binary = Nothing
+                        , float = Just XmlFloat
+                        }
+                , succeed 
+                    (\(s,x) -> 
+                        Parser.Loop (d |> insertDictListAdd s x)
+                    )
                     |= xmlTag
+                , succeed (Parser.Done (SubTags d))
                 ]
                 |. spaces
         )
 
-xmlInt : Parser (String, XmlTag)
-xmlInt =
-    ( succeed identity 
-        |. symbol "<"
-        |= Parser.getChompedString (Parser.chompIf Char.isAlpha)
-        |. symbol ">"
-    ) |> andThen
-    (\s -> 
-        Parser.map (\i -> (s,XmlInt i))
-            (Parser.int 
-                |. symbol ("</"++s++">")
-            )
-    )
+insertDictListAdd : comparable -> a -> Dict comparable (List a) -> Dict comparable (List a)
+insertDictListAdd target newItem =
+    Dict.update target
+        (\m ->
+            case m of
+                Just l ->
+                    Just (newItem::l)
+                Nothing ->
+                    Just (List.singleton newItem)
+        )
 
-xmlFloat : Parser (String, XmlTag)
-xmlFloat =
-    ( succeed identity 
-        |. symbol "<"
-        |= Parser.getChompedString (Parser.chompIf Char.isAlpha)
-        |. symbol ">"
-    ) |> andThen
-    (\s -> 
-        Parser.map (\i -> (s,XmlFloat i))
-            (Parser.float 
-                |. symbol ("</"++s++">")
+possibleComments : Parser ()
+possibleComments =
+    Parser.loop () 
+        (always 
+            ( Parser.oneOf 
+                [ succeed (Parser.Loop ())
+                    |. Parser.multiComment "<!--" "-->" Parser.NotNestable
+                    |. symbol "-->"
+                , succeed (Parser.Done ())
+                ]
+                |. spaces
             )
-    )
+        )
 
-xmlString : Parser (String, XmlTag)
-xmlString =
-    ( succeed identity 
-        |. symbol "<"
-        |= Parser.getChompedString (Parser.chompIf Char.isAlpha)
-        |. symbol ">"
-    ) |> andThen
-    (\s ->
-        Parser.map (\str -> (s, XmlString str))
-            (Parser.getChompedString (Parser.chompUntil ("</"++s++">"))
-                |. symbol ("</"++s++">")
+discardAttributeList : Parser ()
+discardAttributeList = 
+    Parser.loop () 
+        (always
+            ( Parser.oneOf
+                [ succeed (Parser.Loop ())
+                    |. Parser.variable
+                        { start = Char.isAlpha
+                        , inner = (\c -> Char.isAlphaNum c || c == ':')
+                        , reserved = Set.empty
+                        }
+                    |. symbol "="
+                    |. Parser.multiComment "\"" "\"" Parser.NotNestable
+                    |. symbol "\""
+                , succeed (Parser.Done ())
+                ]
+                |. spaces
             )
-    )
-
-xmlComment : Parser ()
-xmlComment =
-    Parser.multiComment "<!--" "-->" Parser.NotNestable
-        |. Parser.symbol "-->"
+        )
