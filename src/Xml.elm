@@ -24,7 +24,7 @@ xmlFile =
 
 xmlTag : Parser (String,XmlTag)
 xmlTag =
-    succeed identity
+    succeed (Debug.log "xmlTag")
         |. symbol "<"
         |= Parser.oneOf 
             [ succeed (\s -> ("comment",XmlString s))
@@ -41,6 +41,29 @@ xmlTag =
                         Parser.oneOf
                             [ succeed (s,PresenceTag)
                                 |. symbol "/>"
+                            , succeed (s,PresenceTag)
+                                |. symbol ">"
+                                |. spaces
+                                |. symbol ("</"++s++">")
+                            , succeed (\n -> (s, n))
+                                |. symbol ">"
+                                |= keyNumber 
+                                    { int = Just XmlInt
+                                    , hex = Nothing
+                                    , octal = Nothing
+                                    , binary = Nothing
+                                    , float = Just XmlFloat
+                                    }
+                                    (Set.fromList ['<'])
+                                |. symbol ("</"++s++">")
+                            , succeed (\str -> (s, XmlString str))
+                                |. symbol ">"
+                                |= Parser.variable
+                                    { start = Char.isAlphaNum
+                                    , inner = \c -> c /= '<'
+                                    , reserved = Set.empty
+                                    }
+                                |. symbol ("</"++s++">")
                             , succeed (\x -> (s, x))
                                 |. symbol ">"
                                 |. spaces
@@ -54,22 +77,12 @@ xmlTag =
 xmlTagContents : Parser XmlTag
 xmlTagContents =
     Parser.loop Dict.empty
-        (\d ->
+        (\dictState ->
             Parser.oneOf 
-                [ succeed (\x -> Parser.Done d)
-                    |= Parser.number
-                        { int = Just XmlInt
-                        , hex = Nothing
-                        , octal = Nothing
-                        , binary = Nothing
-                        , float = Just XmlFloat
-                        }
-                , succeed 
-                    (\(s,x) -> 
-                        Parser.Loop (d |> insertDictListAdd s x)
-                    )
+                [ succeed
+                    (\(tag,xmlDat) -> Parser.Loop (insertDictListAdd tag xmlDat dictState))
                     |= xmlTag
-                , succeed (Parser.Done (SubTags d))
+                , Parser.commit (Parser.Done (SubTags dictState))
                 ]
                 |. spaces
         )
@@ -84,6 +97,29 @@ insertDictListAdd target newItem =
                 Nothing ->
                     Just (List.singleton newItem)
         )
+
+type alias KeyNumberData a =
+    { int : Maybe (Int -> a)
+    , hex : Maybe (Int -> a)
+    , octal : Maybe (Int -> a)
+    , binary : Maybe (Int -> a)
+    , float : Maybe (Float -> a)
+    }
+
+keyNumber : KeyNumberData a -> Set Char -> Parser a
+keyNumber dat allowedChars =
+    Parser.oneOf
+        [ Parser.backtrackable
+            ( Parser.number dat
+                |. Parser.variable
+                    { start = \c -> not (Set.member c allowedChars)
+                    , inner = always False
+                    , reserved = Set.empty
+                    }
+                |. Parser.problem "ExpectingKeynumber"
+            )
+        , Parser.number dat
+        ]
 
 possibleComments : Parser ()
 possibleComments =
