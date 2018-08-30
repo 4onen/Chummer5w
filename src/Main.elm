@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser
 import Html
+import Html.Events
 import Http
 import Parser exposing (Parser,(|.),(|=))
 
@@ -18,15 +19,17 @@ main =
 type alias Model = 
     { fileContent : String
     , parseResult : Maybe (Result (List Parser.DeadEnd) (List String))
+    , show : Bool
     }
 
 
 type Msg 
     = FileLoaded (Result Http.Error String)
+    | Show
 
 init () =
-    ( Model "init" Nothing
-    , Http.send FileLoaded <| Http.getString "../qualities.xml"
+    ( Model "init" Nothing False
+    , Http.send FileLoaded <| Http.getString "../metatypes.xml"
     )
 
 update msg model =
@@ -39,8 +42,10 @@ update msg model =
                 }
             , Cmd.none
             )
-        e ->
+        FileLoaded (Result.Err e) ->
             ({model | fileContent = Debug.toString e}, Cmd.none)
+        Show ->
+            ({model | show = not model.show}, Cmd.none)
 
 view model = 
     { title = "C5W"
@@ -63,7 +68,11 @@ view model =
                             )
                         |> List.map (Html.div [])
             Just (Result.Ok q) ->
-                q 
-                    |> List.map Html.text
+                (Html.button [Html.Events.onClick Show] [Html.text "Show"]) ::
+                case model.show of
+                    False ->
+                        List.singleton <| Html.text "done" 
+                    True ->
+                        q |> List.map Html.text
     }
 

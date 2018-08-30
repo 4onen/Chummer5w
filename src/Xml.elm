@@ -5,152 +5,140 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 
 type XmlTag
-    = SubTags (Dict String (List XmlTag))
+    = SubTags SubTagDict
     | PresenceTag
     | XmlInt Int
     | XmlFloat Float
     | XmlString String
 
+type alias SubTagDict = Dict String (List XmlTag)
+
 xmlFile : Parser XmlTag
 xmlFile =
     succeed identity
         |. Parser.symbol "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        |. spaces
+        |. mySpaces
         |. possibleComments
-        |. spaces
-        |= (xmlTag |> Parser.map Tuple.second)
-        |. spaces
+        |. mySpaces
+        |= (parseXml |> Parser.map Tuple.second)
+        |. mySpaces
         |. Parser.end
-
-xmlTag : Parser (String,XmlTag)
-xmlTag =
-    succeed (Debug.log "xmlTag")
-        |. symbol "<"
-        |= Parser.oneOf 
-            [ succeed (\s -> ("comment",XmlString s))
-                |. symbol "!--"
-                |= Parser.getChompedString 
-                    (Parser.chompUntil "-->")
-                |. symbol "-->"
-            , (succeed identity
-                |= Parser.getChompedString (Parser.chompWhile Char.isAlpha)
-                |. spaces
-                |. discardAttributeList)
-                |> andThen 
-                    (\s -> 
-                        Parser.oneOf
-                            [ succeed (s,PresenceTag)
-                                |. symbol "/>"
-                            , succeed (s,PresenceTag)
-                                |. symbol ">"
-                                |. spaces
-                                |. symbol ("</"++s++">")
-                            , succeed (\n -> (s, n))
-                                |. symbol ">"
-                                |= keyNumber 
-                                    { int = Just XmlInt
-                                    , hex = Nothing
-                                    , octal = Nothing
-                                    , binary = Nothing
-                                    , float = Just XmlFloat
-                                    }
-                                    (Set.fromList ['<'])
-                                |. symbol ("</"++s++">")
-                            , succeed (\str -> (s, XmlString str))
-                                |. symbol ">"
-                                |= Parser.variable
-                                    { start = Char.isAlphaNum
-                                    , inner = \c -> c /= '<'
-                                    , reserved = Set.empty
-                                    }
-                                |. symbol ("</"++s++">")
-                            , succeed (\x -> (s, x))
-                                |. symbol ">"
-                                |. spaces
-                                |= xmlTagContents
-                                |. symbol ("</"++s++">")
-                            ]
-                            |. spaces
-                    )
-            ]
-
-xmlTagContents : Parser XmlTag
-xmlTagContents =
-    Parser.loop Dict.empty
-        (\dictState ->
-            Parser.oneOf 
-                [ succeed
-                    (\(tag,xmlDat) -> Parser.Loop (insertDictListAdd tag xmlDat dictState))
-                    |= xmlTag
-                , Parser.commit (Parser.Done (SubTags dictState))
-                ]
-                |. spaces
-        )
-
-insertDictListAdd : comparable -> a -> Dict comparable (List a) -> Dict comparable (List a)
-insertDictListAdd target newItem =
-    Dict.update target
-        (\m ->
-            case m of
-                Just l ->
-                    Just (newItem::l)
-                Nothing ->
-                    Just (List.singleton newItem)
-        )
-
-type alias KeyNumberData a =
-    { int : Maybe (Int -> a)
-    , hex : Maybe (Int -> a)
-    , octal : Maybe (Int -> a)
-    , binary : Maybe (Int -> a)
-    , float : Maybe (Float -> a)
-    }
-
-keyNumber : KeyNumberData a -> Set Char -> Parser a
-keyNumber dat allowedChars =
-    Parser.oneOf
-        [ Parser.backtrackable
-            ( Parser.number dat
-                |. Parser.variable
-                    { start = \c -> not (Set.member c allowedChars)
-                    , inner = always False
-                    , reserved = Set.empty
-                    }
-                |. Parser.problem "ExpectingKeynumber"
-            )
-        , Parser.number dat
-        ]
 
 possibleComments : Parser ()
 possibleComments =
-    Parser.loop () 
-        (always 
-            ( Parser.oneOf 
-                [ succeed (Parser.Loop ())
-                    |. Parser.multiComment "<!--" "-->" Parser.NotNestable
-                    |. symbol "-->"
-                , succeed (Parser.Done ())
+    symbol "<!--"
+        |. Parser.chompUntil "-->"
+        |. Parser.symbol "-->"
+
+parseXml : Parser (String, XmlTag)
+parseXml =
+    xmlTag 
+        |> andThen 
+            (\tag -> Parser.oneOf
+                [ succeed (tag,PresenceTag)
+                    |. symbol "/>"
+                , succeed identity
+                    |. symbol ">"
+                    |. mySpaces
+                    |= parseXmlHelp tag
                 ]
-                |. spaces
+            )
+
+xmlTag : Parser String
+xmlTag = 
+    succeed identity
+        |. symbol "<"
+        |= Parser.variable
+            { start = Char.isAlpha
+            , inner = Char.isAlphaNum
+            , reserved = Set.empty
+            }
+        |. discardAttributeList
+
+parseXmlHelp : String -> Parser (String, XmlTag)
+parseXmlHelp tag =
+    Parser.oneOf
+        [ succeed (tag,PresenceTag)
+            |. symbol ("</"++tag++">")
+        , succeed (\x -> (tag,x))
+            |= subTagContent tag
+        , succeed (\x -> (tag,x))
+            |= simpleContent
+            |. symbol ("</"++tag++">")
+        , Parser.problem 
+            "This super simple XML library doesn't support semi-structured XML. Please decide between either child tags or text inside any particular tag, not both!"
+        ]
+
+simpleContent : Parser XmlTag
+simpleContent =
+    Parser.getChompedString (Parser.chompUntil "</")
+    |> andThen 
+        (\s -> succeed
+            ( case String.toInt s of
+                Just i ->
+                    XmlInt i
+                Nothing ->
+                    case String.toFloat s of
+                        Just f ->
+                            XmlFloat f
+                        Nothing ->
+                            XmlString s
             )
         )
 
+subTagContent : String -> Parser XmlTag
+subTagContent tag =
+    Parser.loop Dict.empty 
+        (subTagContentHelp tag)
+
+subTagContentHelp : String -> SubTagDict -> Parser (Parser.Step SubTagDict XmlTag)
+subTagContentHelp tag dict = 
+    Parser.oneOf
+        [ succeed (Parser.Loop dict)
+            |. possibleComments
+        , succeed (Parser.Done (SubTags dict))
+            |. symbol ("</"++tag++">")
+        , succeed (\(t,x) -> Parser.Loop (dict |> insertSubTag t x))
+            |= parseXml
+        ]
+        |. mySpaces
+
+insertSubTag : String -> XmlTag -> SubTagDict -> SubTagDict
+insertSubTag tag xml =
+    Dict.update tag 
+        (\m ->
+            case m of
+                Just l ->
+                    Just (xml :: l)
+                Nothing ->
+                    Just (List.singleton xml)
+        )
+
+
 discardAttributeList : Parser ()
-discardAttributeList = 
-    Parser.loop () 
-        (always
-            ( Parser.oneOf
+discardAttributeList =
+    (Parser.loop () <| always
+        ( succeed identity 
+            |. spaces 
+            |= Parser.oneOf
                 [ succeed (Parser.Loop ())
                     |. Parser.variable
                         { start = Char.isAlpha
-                        , inner = (\c -> Char.isAlphaNum c || c == ':')
+                        , inner = \c -> Char.isAlphaNum c || c == ':'
                         , reserved = Set.empty
                         }
-                    |. symbol "="
-                    |. Parser.multiComment "\"" "\"" Parser.NotNestable
+                    |. symbol "=\""
+                    |. Parser.chompUntil "\""
                     |. symbol "\""
                 , succeed (Parser.Done ())
                 ]
-                |. spaces
-            )
+        )
+    ) |. spaces
+
+mySpaces : Parser ()
+mySpaces =
+    Parser.chompWhile
+        (\c ->
+            Set.fromList [' ','\n','\r','\t']
+                |> Set.member c
         )
