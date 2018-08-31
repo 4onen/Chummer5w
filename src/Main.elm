@@ -29,7 +29,7 @@ type Msg
 
 init () =
     ( Model "init" Nothing False
-    , Http.send FileLoaded <| Http.getString "../metatypes.xml"
+    , Http.send FileLoaded <| Http.getString "https://raw.githubusercontent.com/chummer5a/chummer5a/master/Chummer/data/critters.xml"
     )
 
 update msg model =
