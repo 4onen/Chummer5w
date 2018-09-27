@@ -1,0 +1,3 @@
+[submodule "structured-xml-decoder"]
+	path = structured-xml-decoder
+	url = https://github.com/4onen/structured-xml-decoder.git

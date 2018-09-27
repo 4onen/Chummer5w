@@ -3,7 +3,7 @@ module Qualities exposing (..)
 import Parser exposing (Parser,(|.),(|=),spaces,succeed)
 
 import Utilities
-import Xml
+import Xml.Decode.Advanced as Xml
 
 type alias Quality =
     { id : String
