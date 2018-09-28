@@ -1,4 +1,4 @@
-module Modifier exposing (Modifier,CanPurchase(..))
+module Modifier exposing (..)
 
 import Dict exposing (Dict)
 import Set exposing (Set)
@@ -29,22 +29,43 @@ type alias Modifier =
 
 qualityModifier : XmlContentDecoder Modifier
 qualityModifier =
-    XD.map6 Modifier
-        <| XD.tag "id" XD.string
-        <| XD.tag "name" XD.string
-        <| qualityEffects
-        <| qualityRequirements
-        <| sourceIt
+    XD.map5 Modifier
+        (XD.tag "id" XD.string |> XD.map String.toLower)
+        (XD.tag "name" XD.string)
+        (qualityEffects)
+        (qualityRequirements)
+        (sourceIt)
+
+type EffectCategory
+    = Positive
+    | Negative
+    | Undefined
 
 type alias Effects =
     { karmaChange : Int
     , chargenEffets : Dict String Int
     , alwaysEffects : Dict String Int
+    , effectCategory : EffectCategory
     }
 
 qualityEffects : XmlContentDecoder Effects
 qualityEffects =
-    XD.succeed <| Effects 0 Dict.empty Dict.empty
+    XD.map4 Effects
+        (XD.map negate <| XD.tag "karma" XD.int)
+        (XD.succeed Dict.empty)
+        (XD.succeed Dict.empty)
+        (XD.tag "category" XD.string 
+            |> XD.map 
+                (\str ->
+                    case str of
+                        "Positive" ->
+                            Positive
+                        "Negative" ->
+                            Negative
+                        _ ->
+                            Undefined
+                )
+        )
 
 type alias Requirements = 
     { canPurchase : CanPurchase
