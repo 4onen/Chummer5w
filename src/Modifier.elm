@@ -1,13 +1,15 @@
-module Modifier exposing (..)
+module Modifier exposing (CanPurchase(..), EffectCategory(..), Effects, Id, Modifier, ModifierName, Requirements, Sourcing, qualityEffects, qualityModifier, qualityRequirements, sourceIt)
 
 import Dict exposing (Dict)
 import Set exposing (Set)
-import Xml.Decode as XD exposing (XmlContentDecoder)
+import Xml.Decode as XD exposing (Decoder)
+
 
 type CanPurchase
     = CharGenOnly
     | CampaignOnly
     | Always
+
 
 type alias Sourcing =
     { sourceBook : String
@@ -15,9 +17,14 @@ type alias Sourcing =
     , nameOnPage : Maybe String
     }
 
-type alias ModifierName = String
 
-type alias Id = String
+type alias ModifierName =
+    String
+
+
+type alias Id =
+    String
+
 
 type alias Modifier =
     { id : Id
@@ -27,19 +34,22 @@ type alias Modifier =
     , source : Sourcing
     }
 
-qualityModifier : XmlContentDecoder Modifier
+
+qualityModifier : Decoder Modifier
 qualityModifier =
     XD.map5 Modifier
-        (XD.tag "id" XD.string |> XD.map String.toLower)
-        (XD.tag "name" XD.string)
-        (qualityEffects)
-        (qualityRequirements)
-        (sourceIt)
+        (XD.path [ "id" ] (XD.single XD.string) |> XD.map String.toLower)
+        (XD.path [ "name" ] (XD.single XD.string))
+        qualityEffects
+        qualityRequirements
+        sourceIt
+
 
 type EffectCategory
     = Positive
     | Negative
     | Undefined
+
 
 type alias Effects =
     { karmaChange : Int
@@ -48,39 +58,45 @@ type alias Effects =
     , effectCategory : EffectCategory
     }
 
-qualityEffects : XmlContentDecoder Effects
+
+qualityEffects : Decoder Effects
 qualityEffects =
     XD.map4 Effects
-        (XD.map negate <| XD.tag "karma" XD.int)
+        (XD.map negate <| XD.path [ "karma" ] <| XD.single XD.int)
         (XD.succeed Dict.empty)
         (XD.succeed Dict.empty)
-        (XD.tag "category" XD.string 
-            |> XD.map 
+        (XD.path [ "category" ] (XD.single XD.string)
+            |> XD.map
                 (\str ->
                     case str of
                         "Positive" ->
                             Positive
+
                         "Negative" ->
                             Negative
+
                         _ ->
                             Undefined
                 )
         )
 
-type alias Requirements = 
+
+type alias Requirements =
     { canPurchase : CanPurchase
     , maxTimesTaken : Maybe Int
     , mustHaves : Set ModifierName
     , mustNotHaves : Set ModifierName
     }
 
-qualityRequirements : XmlContentDecoder Requirements
+
+qualityRequirements : Decoder Requirements
 qualityRequirements =
     XD.succeed <| Requirements Always Nothing Set.empty Set.empty
 
-sourceIt : XmlContentDecoder Sourcing
+
+sourceIt : Decoder Sourcing
 sourceIt =
     XD.map3 Sourcing
-        (XD.tag "source" XD.string)
-        (XD.tag "page" XD.int)
-        (XD.maybeTag "nameonpage" XD.string)
+        (XD.path [ "source" ] <| XD.single XD.string)
+        (XD.path [ "page" ] <| XD.single XD.int)
+        (XD.possiblePath [ "nameonpage" ] (XD.single XD.string) (XD.succeed identity))

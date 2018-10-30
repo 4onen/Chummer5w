@@ -1,8 +1,7 @@
 {
     "type": "application",
     "source-directories": [
-        "src",
-        "structured-xml-decoder/src/"
+        "src"
     ],
     "elm-version": "0.19.0",
     "dependencies": {
@@ -12,13 +11,16 @@
             "elm/html": "1.0.0",
             "elm/http": "1.0.0",
             "elm/parser": "1.1.0",
-            "elm-community/dict-extra": "2.3.1"
+            "elm-community/dict-extra": "2.3.1",
+            "ymtszw/elm-xml-decode": "2.0.0"
         },
         "indirect": {
             "elm/json": "1.0.0",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
-            "elm/virtual-dom": "1.0.0"
+            "elm/virtual-dom": "1.0.0",
+            "jinjor/elm-xml-parser": "2.0.0",
+            "rtfeldman/elm-hex": "1.0.0"
         }
     },
     "test-dependencies": {
